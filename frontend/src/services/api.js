@@ -90,6 +90,24 @@ export const api = {
     }
   },
 
+  // Update the current user's profile (e.g. save a default delivery address)
+  updateProfile: async (profileData) => {
+    try {
+      const res = await api.request('/api/users/me', {
+        method: 'PATCH',
+        body: JSON.stringify(profileData)
+      });
+      // Refresh the stored user so prefill reflects the new address
+      if (res.user) {
+        localStorage.setItem('user', JSON.stringify(res.user));
+      }
+      return res;
+    } catch (err) {
+      console.error('Update profile failed:', err);
+      throw err;
+    }
+  },
+
   // Listings endpoints
   getProducts: async (filters = {}) => {
     try {

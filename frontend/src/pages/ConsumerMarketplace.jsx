@@ -14,21 +14,36 @@ const PAYMENT_METHODS = [
 ];
 
 function ProductCard({ product, onBuy, index }) {
+  const { user } = useAuth();
   const [showBuyModal, setShowBuyModal] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState('upi');
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
+  const [deliveryAddress, setDeliveryAddress] = useState(user?.delivery_address || user?.location || '');
+  const [saveAddress, setSaveAddress] = useState(true);
 
   const handlePayAndOrder = async () => {
+    if (!deliveryAddress.trim()) {
+      setError('Please enter a delivery address.');
+      return;
+    }
+    setError('');
     if (paymentMethod !== 'cod' && !processing) {
       setProcessing(true);
-      setError('');
       // Simulate a payment gateway call for demo purposes
       await new Promise(r => setTimeout(r, 1200));
       setProcessing(false);
     }
-    onBuy({ ...product, quantity, payment_method: paymentMethod });
+    // Persist the address to the buyer's profile if requested
+    if (saveAddress && deliveryAddress.trim()) {
+      try {
+        await api.updateProfile({ delivery_address: deliveryAddress });
+      } catch (e) {
+        console.warn('Could not save delivery address to profile:', e.message);
+      }
+    }
+    onBuy({ ...product, quantity, payment_method: paymentMethod, delivery_address: deliveryAddress });
     setShowBuyModal(false);
   };
 
@@ -141,6 +156,29 @@ function ProductCard({ product, onBuy, index }) {
                   onChange={(e) => setQuantity(Math.max(1, Math.min(e.target.value, product.stockNumber)))}
                   className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E5DCCF] rounded-xl text-sm font-bold text-[#232921] focus:outline-none focus:border-[#2D5A38] focus:bg-white"
                 />
+              </div>
+
+              {/* Delivery Address */}
+              <div>
+                <label className="block text-xs font-medium text-[#232921] mb-1.5">
+                  Delivery Address
+                </label>
+                <input
+                  type="text"
+                  value={deliveryAddress}
+                  onChange={(e) => setDeliveryAddress(e.target.value)}
+                  placeholder="House no, street, city, state"
+                  className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E5DCCF] rounded-xl text-sm font-medium text-[#232921] focus:outline-none focus:border-[#2D5A38] focus:bg-white"
+                />
+                <label className="mt-2 flex items-center gap-2 text-[11px] text-[#6B7264] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={saveAddress}
+                    onChange={(e) => setSaveAddress(e.target.checked)}
+                    className="accent-[#2D5A38]"
+                  />
+                  Save this as my default delivery address
+                </label>
               </div>
 
               {/* Payment Method */}
@@ -353,7 +391,8 @@ export default function Marketplace() {
       const order = await api.createOrder({
         listing_id: product.id,
         quantity: product.quantity,
-        payment_method: product.payment_method || 'cod'
+        payment_method: product.payment_method || 'cod',
+        delivery_address: product.delivery_address
       });
 
       alert(`Order placed successfully! Payment: ${(product.payment_method || 'cod').toUpperCase()}`);

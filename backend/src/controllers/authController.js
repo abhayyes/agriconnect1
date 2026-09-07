@@ -38,7 +38,7 @@ async function register(req, res, next) {
     const result = await pool.query(
       `INSERT INTO users (name, email, password_hash, role, phone, location)
        VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING id, name, email, role, phone, location, created_at`,
+       RETURNING id, name, email, role, phone, location, delivery_address, created_at`,
       [name, normalizedEmail, passwordHash, role, phone, location]
     );
 
@@ -87,9 +87,52 @@ async function login(req, res, next) {
 async function me(req, res, next) {
   try {
     const result = await pool.query(
-      'SELECT id, name, email, role, phone, location, created_at FROM users WHERE id = $1',
+      'SELECT id, name, email, role, phone, location, delivery_address, created_at FROM users WHERE id = $1',
       [req.user.id]
     );
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.status(200).json({ user: result.rows[0] });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// PATCH /api/users/me (requires requireAuth middleware)
+// Allows a buyer to save a default delivery_address to their profile.
+async function updateMe(req, res, next) {
+  try {
+    const { delivery_address, phone, location } = req.body;
+
+    // Only allow updating safe profile fields
+    const fields = [];
+    const values = [];
+    if (delivery_address !== undefined) {
+      values.push(delivery_address);
+      fields.push(`delivery_address = $${values.length}`);
+    }
+    if (phone !== undefined) {
+      values.push(phone);
+      fields.push(`phone = $${values.length}`);
+    }
+    if (location !== undefined) {
+      values.push(location);
+      fields.push(`location = $${values.length}`);
+    }
+
+    if (fields.length === 0) {
+      return res.status(400).json({ error: 'No updatable fields provided' });
+    }
+
+    values.push(req.user.id);
+    const result = await pool.query(
+      `UPDATE users SET ${fields.join(', ')}
+       WHERE id = $${values.length}
+       RETURNING id, name, email, role, phone, location, delivery_address, created_at`,
+      values
+    );
+
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -107,4 +150,4 @@ function signToken(user) {
   );
 }
 
-module.exports = { register, login, me };
+module.exports = { register, login, me, updateMe };

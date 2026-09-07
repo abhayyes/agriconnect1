@@ -240,53 +240,115 @@ export default function Orders() {
                       <MapPin className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="text-[10px] text-[#8E9687] uppercase font-semibold mb-0.5">Delivery</p>
+                      <p className="text-[10px] text-[#8E9687] uppercase font-semibold mb-0.5">Delivery To</p>
                       <p className="text-sm font-medium text-[#232921]">
-                        {isFarmer && order.buyer_location ? order.buyer_location : 'Same Day Delivery'}
+                        {order.delivery_address || (isFarmer && order.buyer_location) || 'Address not provided'}
                       </p>
-                      <p className="text-xs text-[#6B7264] mt-1">
-                        {order.route ? 'Route optimized via AI' : 'AI service unavailable'}
-                      </p>
+                      {order.route ? (
+                        <p className="text-xs text-[#6B7264] mt-1">
+                          🚛 {order.route.distance_km ? `${order.route.distance_km} km` : ''}
+                          {order.route.estimated_time_min ? ` · ~${order.route.estimated_time_min} min` : ''}
+                          {' · Route optimized via AI'}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-[#8E9687] mt-1">AI route assigned on confirm</p>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                {/* Progress Steps */}
-                {order.status !== 'cancelled' && (
-                  <div className="mt-4 pt-4 border-t border-[#E5DCCF]">
-                    <div className="flex items-center justify-between">
-                      {['pending', 'confirmed', 'shipped', 'delivered'].map((step, idx) => {
-                        const statusOrder = ['pending', 'confirmed', 'shipped', 'delivered'];
-                        const isCompleted = statusOrder.indexOf(order.status) >= idx;
-                        const isCurrent = order.status === step;
+                {/* Enhanced Dispatch Timeline */}
+                {order.status !== 'cancelled' && (() => {
+                  const steps = [
+                    { key: 'pending',   icon: <Clock className="w-4 h-4" />,        label: 'Order Placed',  color: 'amber' },
+                    { key: 'confirmed', icon: <CheckCircle2 className="w-4 h-4" />, label: 'Confirmed',     color: 'blue'   },
+                    { key: 'shipped',   icon: <Ship className="w-4 h-4" />,         label: 'Shipped',       color: 'indigo' },
+                    { key: 'delivered', icon: <CheckCircle2 className="w-4 h-4" />, label: 'Delivered',     color: 'emerald' }
+                  ];
+                  const currentIdx = steps.findIndex(s => s.key === order.status);
 
-                        return (
-                          <div key={step} className="flex flex-col items-center gap-2">
-                            <div
-                              className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all ${
-                                isCompleted
-                                  ? 'bg-[#2D5A38] border-[#2D5A38] text-white'
-                                  : isCurrent
-                                    ? 'bg-white border-[#2D5A38] text-[#2D5A38]'
-                                    : 'bg-white border-[#E5DCCF] text-[#8E9687]'
-                              }`}
-                            >
-                              {step === 'pending' && <Clock className="w-4 h-4" />}
-                              {step === 'confirmed' && <CheckCircle2 className="w-4 h-4" />}
-                              {step === 'shipped' && <Ship className="w-4 h-4" />}
-                              {step === 'delivered' && <CheckCircle2 className="w-4 h-4" />}
-                            </div>
-                            <span className={`text-[9px] uppercase font-medium ${
-                              isCompleted || isCurrent ? 'text-[#232921]' : 'text-[#8E9687]'
-                            }`}>
-                              {step}
-                            </span>
+                  const colorMap = {
+                    amber:   { dot: 'bg-amber-500',  ring: 'ring-amber-100',  text: 'text-amber-700',  line: 'bg-amber-200' },
+                    blue:    { dot: 'bg-blue-500',   ring: 'ring-blue-100',   text: 'text-blue-700',   line: 'bg-blue-200' },
+                    indigo:  { dot: 'bg-indigo-500',  ring: 'ring-indigo-100', text: 'text-indigo-700', line: 'bg-indigo-200' },
+                    emerald: { dot: 'bg-emerald-500', ring: 'ring-emerald-100', text: 'text-emerald-700', line: 'bg-emerald-200' }
+                  };
+
+                  return (
+                    <div className="mt-4 pt-4 border-t border-[#E5DCCF]">
+                      {/* Buyer "dispatch on the move" banner */}
+                      {isBuyer && currentIdx >= 2 && (
+                        <div className="mb-4 px-4 py-3 bg-indigo-50 border border-indigo-200 rounded-xl flex items-center gap-3">
+                          <div className="p-2 bg-indigo-100 rounded-lg">
+                            <Ship className="w-5 h-5 text-indigo-600" />
                           </div>
-                        );
-                      })}
+                          <div>
+                            <p className="text-sm font-semibold text-indigo-800">Dispatch on the move</p>
+                            <p className="text-xs text-indigo-600">
+                              Your order is on its way{order.delivery_address ? ` to ${order.delivery_address}` : ''}
+                              {order.route?.estimated_time_min ? ` — ETA ~${order.route.estimated_time_min} min` : ''}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Farmer route details */}
+                      {isFarmer && order.route && (
+                        <div className="mb-4 px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center gap-3">
+                          <div className="p-2 bg-blue-100 rounded-lg">
+                            <MapPin className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-blue-800">AI Optimized Route</p>
+                            <p className="text-xs text-blue-600">
+                              {order.route.distance_km ? `${order.route.distance_km} km` : ''}
+                              {order.route.estimated_time_min ? ` · ETA ${order.route.estimated_time_min} min` : ''}
+                              {order.route.waypoints?.length ? ` · ${order.route.waypoints.length} stops` : ''}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Vertical timeline */}
+                      <div className="relative pl-6">
+                        {steps.map((step, idx) => {
+                          const reached = idx <= currentIdx;
+                          const isCurrent = idx === currentIdx;
+                          const colors = colorMap[step.color];
+
+                          return (
+                            <div key={step.key} className="relative flex items-start gap-4 pb-4 last:pb-0">
+                              {/* Connecting line */}
+                              {idx < steps.length - 1 && (
+                                <div className={`absolute left-0 top-6 w-0.5 h-full ${reached ? colors.line : 'bg-[#E5DCCF]'}`} />
+                              )}
+                              {/* Dot */}
+                              <div className={`relative z-10 w-6 h-6 rounded-full flex items-center justify-center shrink-0 ring-4 ${
+                                reached ? `${colors.dot} ring-white text-white` : 'bg-white border-2 border-[#E5DCCF] text-[#8E9687]'
+                              }`}>
+                                {step.icon}
+                              </div>
+                              {/* Label */}
+                              <div className="pt-0.5">
+                                <p className={`text-sm font-semibold ${reached ? 'text-[#232921]' : 'text-[#8E9687]'}`}>
+                                  {step.label}
+                                </p>
+                                <p className="text-xs text-[#8E9687]">
+                                  {isCurrent
+                                    ? (idx === 0 ? 'Now' : 'Current step')
+                                    : reached
+                                      ? 'Done'
+                                      : 'Waiting'
+                                  }
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* Role-based actions */}
                 {order.status !== 'delivered' && order.status !== 'cancelled' && (

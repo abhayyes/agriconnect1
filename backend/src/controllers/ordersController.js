@@ -115,10 +115,25 @@ async function getOrders(req, res, next) {
 // Auth: consumer or bulk_buyer only
 async function createOrder(req, res, next) {
   try {
-    const { listing_id, quantity, price_per_unit, crop, unit, payment_method, payment_status } = req.body;
+    const {
+      listing_id, quantity, price_per_unit, crop, unit,
+      payment_method, payment_status, delivery_address
+    } = req.body;
 
     if (!quantity || quantity <= 0) {
       return res.status(400).json({ error: 'quantity must be positive' });
+    }
+
+    // Delivery address: prefer the order-level one given by the buyer;
+    // fall back to the buyer's saved profile delivery_address, else their location.
+    let resolvedAddress = delivery_address;
+    if (!resolvedAddress) {
+      const buyerRow = await pool.query(
+        'SELECT delivery_address, location FROM users WHERE id = $1',
+        [req.user.id]
+      );
+      const buyer = buyerRow.rows[0];
+      resolvedAddress = buyer?.delivery_address || buyer?.location || null;
     }
 
     let actualListingId = listing_id;
@@ -195,10 +210,10 @@ async function createOrder(req, res, next) {
 
     // Create order with 'pending' status
     const orderResult = await pool.query(
-      `INSERT INTO orders (buyer_id, listing_id, quantity, total_price, status, payment_method, payment_status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO orders (buyer_id, listing_id, quantity, total_price, status, payment_method, payment_status, delivery_address)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
-      [req.user.id, actualListingId, quantity, total_price, 'pending', method, payStatus]
+      [req.user.id, actualListingId, quantity, total_price, 'pending', method, payStatus, resolvedAddress]
     );
 
     const order = orderResult.rows[0];
