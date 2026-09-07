@@ -25,7 +25,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: AI_SERVICE_URL
-        value: https://agriconnect-ai.onrender.com
+        value: https://agriconnect-ai-j588.onrender.com
 
   # ── AI Service (Python/FastAPI) ────────────────────────────
   - type: web
