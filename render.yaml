@@ -1,0 +1,45 @@
+# Render Blueprint — one-click deploy for AgriConnect
+# Create Postgres DB + backend + AI service from this single file.
+# Import "https://github.com/abhayyes/agriconnect1" as a Blueprint on Render.
+
+databases:
+  - name: agriconnect-db
+    databaseName: agriconnect
+    plan: free
+
+services:
+  # ── Backend (Node/Express) ──────────────────────────────────
+  - type: web
+    name: agriconnect-backend
+    runtime: node
+    rootDir: backend
+    plan: free
+    healthCheckPath: /health
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: agriconnect-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: AI_SERVICE_URL
+        value: https://agriconnect-ai.onrender.com
+
+  # ── AI Service (Python/FastAPI) ────────────────────────────
+  - type: web
+    name: agriconnect-ai
+    runtime: python
+    rootDir: ai-service
+    plan: free
+    healthCheckPath: /health
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: agriconnect-db
+          property: connectionString
+      - key: MAPS_API_KEY
+        sync: false
