@@ -15,6 +15,10 @@ if (url.startsWith('postgres://') || url.startsWith('postgresql://')) {
     user: parsed.username,
     password: parsed.password,
   };
+  // Cloud Postgres (Render/Neon/Supabase) requires SSL. Honor it when requested.
+  if (parsed.searchParams.get('sslmode') === 'require') {
+    config.ssl = { rejectUnauthorized: false };
+  }
 } else {
   config = { connectionString: url };
 }
