@@ -1,8 +1,43 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Filter, ShoppingBag, MapPin, ShieldCheck, Search, Tag, ArrowUpRight, CheckCircle2, SlidersHorizontal, RefreshCw } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../services/api';
+
+// Map a backend listing to the frontend product card shape
+const CROP_EMOJI = [
+  { k: 'tomato', e: '🍅', c: 'Vegetables' },
+  { k: 'wheat', e: '🌾', c: 'Grains' },
+  { k: 'rice', e: '🍚', c: 'Grains' },
+  { k: 'onion', e: '🧅', c: 'Vegetables' },
+  { k: 'apple', e: '🍎', c: 'Fruits' },
+  { k: 'walnut', e: '🥜', c: 'Dry Fruits' },
+  { k: 'pea', e: '🫛', c: 'Vegetables' },
+  { k: 'banana', e: '🍌', c: 'Fruits' },
+  { k: 'mango', e: '🥭', c: 'Fruits' },
+  { k: 'potato', e: '🥔', c: 'Vegetables' },
+  { k: 'carrot', e: '🥕', c: 'Vegetables' },
+  { k: 'almond', e: '🌰', c: 'Dry Fruits' }
+];
+
+function listingToProduct(l) {
+  const cropLower = (l.crop || '').toLowerCase();
+  const match = CROP_EMOJI.find(({ k }) => cropLower.includes(k));
+  return {
+    id: l.id,
+    name: l.crop,
+    farmer: l.farmer_name || 'Verified FPO',
+    location: l.location || 'India',
+    price: Number(l.price_per_unit),
+    unit: l.unit || 'kg',
+    stock: `${l.quantity} ${l.unit || 'kg'}`,
+    stockNum: Number(l.quantity),
+    isDirect: true,
+    organic: /organic|natural/i.test(cropLower),
+    emoji: match ? match.e : '🌿',
+    category: match ? match.c : 'Vegetables'
+  };
+}
 
 function ProductCard({ product, onBuy, index }) {
   return (
@@ -161,12 +196,15 @@ export default function Marketplace() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // Attempt to load products from Railway API
-    api.getProducts().then(remoteProducts => {
-      if (Array.isArray(remoteProducts) && remoteProducts.length > 0) {
-        setProducts(remoteProducts);
-      }
-    });
+    // Attempt to load products from backend
+    api.getProducts()
+      .then((res) => {
+        const remoteListings = res?.listings;
+        if (Array.isArray(remoteListings) && remoteListings.length > 0) {
+          setProducts(remoteListings.map(listingToProduct));
+        }
+      })
+      .catch((err) => console.warn('Could not load listings:', err.message));
   }, []);
 
   const categories = ['All', 'Vegetables', 'Grains', 'Fruits', 'Dry Fruits'];
@@ -178,6 +216,34 @@ export default function Marketplace() {
                           p.farmer.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
+
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [buyQuantity, setBuyQuantity] = useState(1);
+
+  const handleBuy = (product) => {
+    setSelectedProduct(product);
+    setBuyQuantity(1);
+  };
+
+  const handlePlaceOrder = async () => {
+    if (!selectedProduct) return;
+
+    try {
+      const response = await api.createOrder({
+        listing_id: selectedProduct.id,
+        quantity: buyQuantity,
+        price_per_unit: selectedProduct.price,
+        crop: selectedProduct.name,
+        unit: selectedProduct.unit
+      });
+
+      alert(`Order placed successfully! Order ID: ${response.order?.id?.slice(0, 8) || 'AC-' + Math.floor(Math.random() * 100000)}`);
+      setSelectedProduct(null);
+      setBuyQuantity(1);
+    } catch (err) {
+      alert(`Failed to place order: ${err.message}`);
+    }
+  };
 
   return (
     <div className="py-2 space-y-6">
@@ -247,7 +313,7 @@ export default function Marketplace() {
             key={product.id}
             product={product}
             index={idx}
-            onBuy={() => navigate('/tracking')}
+            onBuy={() => handleBuy(product)}
           />
         ))}
       </div>
@@ -263,6 +329,82 @@ export default function Marketplace() {
           </button>
         </div>
       )}
+
+      {/* Buy Modal */}
+      <AnimatePresence>
+        {selectedProduct && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-[#E5DCCF]"
+            >
+              <h3 className="text-xl font-bold text-[#232921] mb-4">Place Order</h3>
+
+              <div className="space-y-3 mb-6">
+                <div className="flex items-center gap-3 p-4 bg-[#FAF7F2] rounded-xl">
+                  <span className="text-4xl">{selectedProduct.emoji}</span>
+                  <div>
+                    <h4 className="font-bold text-[#232921]">{selectedProduct.name}</h4>
+                    <p className="text-xs text-[#6B7264]">{selectedProduct.farmer}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-[#FAF7F2] p-3 rounded-xl text-center">
+                    <span className="text-[10px] text-[#8E9687] uppercase font-semibold block">Price</span>
+                    <span className="text-lg font-bold text-[#2D5A38]">₹{selectedProduct.price} <span className="text-xs">/{selectedProduct.unit}</span></span>
+                  </div>
+                  <div className="bg-[#FAF7F2] p-3 rounded-xl text-center">
+                    <span className="text-[10px] text-[#8E9687] uppercase font-semibold block">Available</span>
+                    <span className="text-lg font-bold text-[#232921]">{selectedProduct.stock}</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-[#232921] mb-1.5">
+                    Quantity ({selectedProduct.unit})
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max={parseInt(selectedProduct.stock) || 100}
+                    value={buyQuantity}
+                    onChange={(e) => setBuyQuantity(Math.max(1, Math.min(parseInt(e.target.value) || 1, parseInt(selectedProduct.stock) || 100)))}
+                    className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E5DCCF] rounded-xl text-sm font-bold text-[#232921] focus:outline-none focus:border-[#2D5A38] focus:bg-white transition-colors"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between pt-4 border-t border-[#E5DCCF]">
+                  <span className="text-[#6B7264] text-sm">Total Amount</span>
+                  <span className="text-2xl font-bold text-[#2D5A38]">₹{selectedProduct.price * buyQuantity}</span>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setSelectedProduct(null)}
+                  className="flex-1 py-2.5 px-4 bg-[#F2ECE1] hover:bg-[#E5DCCF] text-[#6B7264] rounded-xl text-sm font-semibold transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handlePlaceOrder}
+                  className="flex-1 py-2.5 px-4 bg-[#2D5A38] hover:bg-[#1E3D27] text-white rounded-xl text-sm font-semibold shadow-xs transition-all active:scale-95"
+                >
+                  Confirm Order
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

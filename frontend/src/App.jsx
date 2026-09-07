@@ -1,10 +1,11 @@
 import { useState, createContext, useContext, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, NavLink, useNavigate } from 'react-router-dom';
-import { Sprout, LayoutDashboard, ShoppingBag, Truck, UserCheck, LogOut, ArrowRight, ShieldCheck, Activity } from 'lucide-react';
+import { Sprout, LayoutDashboard, ShoppingBag, Truck, UserCheck, LogOut, ArrowRight, ShieldCheck, Activity, Package } from 'lucide-react';
 import Login from './pages/Login';
-import Marketplace from './pages/Marketplace';
-import Dashboard from './pages/FarmerDashboard';
+import ConsumerMarketplace from './pages/ConsumerMarketplace';
+import FarmerDashboard from './pages/FarmerDashboard';
 import Tracking from './pages/OrderTracking';
+import Orders from './pages/Orders';
 import { api } from './services/api';
 
 // Simple lightweight AuthContext for authentic session state
@@ -17,6 +18,9 @@ export function useAuth() {
 function Navbar() {
   const { user, logout, backendStatus } = useAuth();
   const navigate = useNavigate();
+
+  const isFarmer = user?.role === 'farmer' || user?.role === 'fpo';
+  const isBuyer = user?.role === 'consumer' || user?.role === 'bulk_buyer';
 
   return (
     <header className="sticky top-0 z-40 bg-[#FAF7F2]/90 backdrop-blur-md border-b border-[#E5DCCF]">
@@ -35,7 +39,7 @@ function Navbar() {
                   </span>
                   {backendStatus?.status === 'ok' && (
                     <span
-                      title="Connected to Railway Backend (Live)"
+                      title="Connected to Backend"
                       className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#E8F0E9] text-[#2D5A38] border border-[#C2D6C6]"
                     >
                       <span className="w-1.5 h-1.5 rounded-full bg-[#2D5A38] animate-pulse" />
@@ -49,22 +53,40 @@ function Navbar() {
 
           {/* Navigation Links */}
           <nav className="flex items-center gap-1.5 sm:gap-3">
-            <NavLink
-              to="/marketplace"
-              className={({ isActive }) =>
-                `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-[#E8F0E9] text-[#2D5A38] font-semibold shadow-xs'
-                    : 'text-[#6B7264] hover:text-[#232921] hover:bg-[#F2ECE1]'
-                }`
-              }
-            >
-              <ShoppingBag className="w-4 h-4" />
-              <span>Mandi Market</span>
-            </NavLink>
+            {isBuyer && (
+              <NavLink
+                to="/marketplace"
+                className={({ isActive }) =>
+                  `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-[#E8F0E9] text-[#2D5A38] font-semibold shadow-xs'
+                      : 'text-[#6B7264] hover:text-[#232921] hover:bg-[#F2ECE1]'
+                  }`
+                }
+              >
+                <ShoppingBag className="w-4 h-4" />
+                <span>Mandi Market</span>
+              </NavLink>
+            )}
+
+            {isFarmer && (
+              <NavLink
+                to="/dashboard"
+                className={({ isActive }) =>
+                  `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-[#E8F0E9] text-[#2D5A38] font-semibold shadow-xs'
+                      : 'text-[#6B7264] hover:text-[#232921] hover:bg-[#F2ECE1]'
+                  }`
+                }
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                <span>Farmer Studio</span>
+              </NavLink>
+            )}
 
             <NavLink
-              to="/dashboard"
+              to="/orders"
               className={({ isActive }) =>
                 `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                   isActive
@@ -73,8 +95,8 @@ function Navbar() {
                 }`
               }
             >
-              <LayoutDashboard className="w-4 h-4" />
-              <span>Farmer Studio</span>
+              <Package className="w-4 h-4" />
+              <span>Orders</span>
             </NavLink>
 
             <NavLink
@@ -99,7 +121,7 @@ function Navbar() {
                 <div className="hidden md:flex flex-col text-right">
                   <span className="text-xs font-semibold text-[#232921] leading-tight">{user.name}</span>
                   <span className="text-[10px] text-[#6B7264] font-mono capitalize">
-                    {user.role === 'FARMER' ? '🌾 Kisan / FPO' : '🛒 Buyer'}
+                    {isFarmer ? '🌾 Kisan / FPO' : '🛒 Buyer'}
                   </span>
                 </div>
                 <button
@@ -128,8 +150,8 @@ function Navbar() {
 
 export default function App() {
   const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem('agriconnect_user');
-    return saved ? JSON.parse(saved) : null;
+    const stored = localStorage.getItem('user');
+    return stored ? JSON.parse(stored) : null;
   });
   const [backendStatus, setBackendStatus] = useState(null);
 
@@ -142,12 +164,17 @@ export default function App() {
 
   const loginUser = (userData) => {
     setUser(userData);
-    localStorage.setItem('agriconnect_user', JSON.stringify(userData));
+    localStorage.setItem('user', JSON.stringify(userData));
+    if (userData.token) {
+      localStorage.setItem('token', userData.token);
+    }
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('agriconnect_user');
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    api.logout();
   };
 
   return (
@@ -158,10 +185,11 @@ export default function App() {
 
           <main className="flex-1 container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
             <Routes>
-              <Route path="/" element={<Navigate to="/login" replace />} />
+              <Route path="/" element={<Navigate to={user ? (user.role === 'farmer' ? '/dashboard' : '/marketplace') : '/login'} replace />} />
               <Route path="/login" element={<Login />} />
-              <Route path="/marketplace" element={<Marketplace />} />
-              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/marketplace" element={<ConsumerMarketplace />} />
+              <Route path="/dashboard" element={<FarmerDashboard />} />
+              <Route path="/orders" element={<Orders />} />
               <Route path="/tracking" element={<Tracking />} />
             </Routes>
           </main>

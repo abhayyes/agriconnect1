@@ -1,30 +1,68 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   TrendingUp,
   Package,
   IndianRupee,
   Plus,
   ArrowUpRight,
-  ArrowDownRight,
   Truck,
   CheckCircle2,
-  Clock,
-  BarChart3,
   Wheat,
   X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../services/api';
+import { useAuth } from '../App';
+
+// Fallback/seed inventory shown when no live listings load yet
+const DEFAULT_INVENTORY = [
+  { id: 1, name: "Organic Vine Tomatoes", grade: "Grade A+", stock: "450 kg", price: "₹35/kg", demand: "High Demand", status: "Active in Mandi" },
+  { id: 2, name: "Golden Sharbati Wheat", grade: "Grade A", stock: "1,200 kg", price: "₹28/kg", demand: "Surging Demand", status: "Active in Mandi" },
+  { id: 3, name: "Nashik Red Onions", grade: "Grade B+", stock: "800 kg", price: "₹24/kg", demand: "Peak Demand", status: "Dispatched (In Transit)" },
+  { id: 4, name: "Aromatic Basmati Rice", grade: "Grade A+", stock: "350 kg", price: "₹85/kg", demand: "Stable", status: "Active in Mandi" }
+];
+
+function listingToInventory(l) {
+  const cropLower = (l.crop || '').toLowerCase();
+  const highDemand = /tomato|onion|potato|mango/.test(cropLower);
+  return {
+    id: l.id,
+    name: l.crop,
+    grade: l.variety || 'Grade A+',
+    stock: `${l.quantity} ${l.unit}`,
+    price: `₹${l.price_per_unit}/${l.unit}`,
+    demand: highDemand ? 'High Mandi Demand' : 'Active in Mandi',
+    status: 'Active in Mandi'
+  };
+}
 
 export default function FarmerDashboard() {
+  const { user } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [newCrop, setNewCrop] = useState({ name: '', stock: '', price: '', grade: 'Grade A+' });
-  const [inventoryItems, setInventoryItems] = useState([
-    { id: 1, name: "Organic Vine Tomatoes", grade: "Grade A+", stock: "450 kg", price: "₹35/kg", demand: "High Demand", status: "Active in Mandi" },
-    { id: 2, name: "Golden Sharbati Wheat", grade: "Grade A", stock: "1,200 kg", price: "₹28/kg", demand: "Surging Demand", status: "Active in Mandi" },
-    { id: 3, name: "Nashik Red Onions", grade: "Grade B+", stock: "800 kg", price: "₹24/kg", demand: "Peak Demand", status: "Dispatched (In Transit)" },
-    { id: 4, name: "Aromatic Basmati Rice", grade: "Grade A+", stock: "350 kg", price: "₹85/kg", demand: "Stable", status: "Active in Mandi" }
-  ]);
+  const [inventoryItems, setInventoryItems] = useState(DEFAULT_INVENTORY);
+
+  // Load this farmer's real listings from the backend
+  const loadMyListings = async () => {
+    try {
+      const data = await api.getProducts();
+      if (user?.id && data.listings) {
+        const mine = data.listings.filter(l => l.farmer_id === user.id);
+        if (mine.length > 0) {
+          setInventoryItems(mine.map(listingToInventory));
+        }
+      }
+    } catch (err) {
+      console.warn('Could not load listings:', err.message);
+    }
+  };
+
+  useEffect(() => {
+    if (user?.id) {
+      loadMyListings();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const stats = [
     {
@@ -67,31 +105,24 @@ export default function FarmerDashboard() {
     e.preventDefault();
     if (!newCrop.name || !newCrop.stock || !newCrop.price) return;
 
-    const cropPayload = {
-      name: newCrop.name,
-      grade: newCrop.grade,
-      stock: `${newCrop.stock} kg`,
-      price: `₹${newCrop.price}/kg`,
-      demand: 'High Mandi Demand',
-      status: 'Active in Mandi'
-    };
-
-    // Attempt to register on backend
+    // Persist listing to the backend so it becomes visible in the marketplace
     try {
-      await api.createCrop(cropPayload);
-    } catch {
-      // Graceful local addition
+      await api.createListing({
+        crop: newCrop.name,
+        variety: newCrop.grade,
+        quantity: Number(newCrop.stock),
+        unit: 'kg',
+        price_per_unit: Number(newCrop.price),
+        location: user?.location || 'AgriConnect Mandi'
+      });
+      await loadMyListings();
+      setNewCrop({ name: '', stock: '', price: '', grade: 'Grade A+' });
+      setShowModal(false);
+      alert('Crop listed successfully! It is now visible to buyers in the marketplace.');
+    } catch (err) {
+      console.error('Failed to create listing:', err);
+      alert(`Failed to list crop: ${err.message}`);
     }
-
-    setInventoryItems([
-      ...inventoryItems,
-      {
-        id: Date.now(),
-        ...cropPayload
-      }
-    ]);
-    setNewCrop({ name: '', stock: '', price: '', grade: 'Grade A+' });
-    setShowModal(false);
   };
 
   return (

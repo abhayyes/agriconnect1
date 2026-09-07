@@ -2,17 +2,13 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Sprout,
-  ShoppingCart,
-  Phone,
-  User,
-  MapPin,
-  Building,
-  ArrowRight,
-  ShieldCheck,
   CheckCircle2,
-  Lock,
+  ShieldCheck,
+  Eye,
+  EyeOff,
   Wheat,
-  Store
+  Store,
+  ArrowRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../App';
@@ -29,71 +25,55 @@ export default function Login() {
 
   // Form states
   const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    name: '',
     phone: '',
-    otp: '',
-    fullName: '',
-    stateCity: '',
+    location: '',
     fpoName: '', // Farmer specific
     buyerType: 'Retail Consumer' // Buyer specific
   });
 
-  const [otpSent, setOtpSent] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleSendOtp = (e) => {
-    e.preventDefault();
-    if (!formData.phone || formData.phone.length < 10) {
-      alert("Please enter a valid 10-digit mobile number");
-      return;
-    }
-    setIsSubmitting(true);
-    setTimeout(() => {
-      setOtpSent(true);
-      setIsSubmitting(false);
-    }, 400);
-  };
 
   const handleAuthSubmit = async (e) => {
     e.preventDefault();
+
+    if (!formData.email || !formData.password) {
+      alert('Please enter both email and password.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     const credentials = {
-      phone: formData.phone || '9876543210',
-      otp: formData.otp || '1234',
-      fullName: formData.fullName,
-      role: role,
-      location: formData.stateCity,
+      email: formData.email,
+      password: formData.password,
+      name: formData.name,
+      role: role === 'FARMER' ? 'farmer' : 'consumer',
+      phone: formData.phone,
+      location: formData.location,
       fpoName: formData.fpoName,
       buyerType: formData.buyerType
     };
 
     try {
       const response = await api.login(credentials);
-      const authUser = response.user || {
-        name: formData.fullName || (role === 'FARMER' ? 'Ramesh Kumar' : 'Sunil Sharma'),
-        phone: formData.phone || '9876543210',
-        role: role,
-        location: formData.stateCity || (role === 'FARMER' ? 'Punjab, India' : 'Noida, UP'),
-        fpo: formData.fpoName || 'Kisan Direct FPO'
+      const authUser = {
+        ...response.user,
+        token: response.token
       };
-
       loginUser(authUser);
-    } catch {
-      // Fallback local login
-      loginUser({
-        name: formData.fullName || (role === 'FARMER' ? 'Ramesh Kumar' : 'Sunil Sharma'),
-        phone: formData.phone || '9876543210',
-        role: role,
-        location: formData.stateCity || (role === 'FARMER' ? 'Punjab, India' : 'Noida, UP'),
-        fpo: formData.fpoName || 'Kisan Direct FPO'
-      });
-    } finally {
       setIsSubmitting(false);
       if (role === 'FARMER') {
         navigate('/dashboard');
       } else {
         navigate('/marketplace');
       }
+    } catch (err) {
+      setIsSubmitting(false);
+      alert(err.message || 'Authentication failed. Please check your credentials.');
     }
   };
 
@@ -191,91 +171,86 @@ export default function Login() {
             <div className="flex items-center gap-1 bg-[#F2ECE1] p-1 rounded-xl mb-6 border border-[#E5DCCF]">
               <button
                 type="button"
-                onClick={() => { setMode('LOGIN'); setOtpSent(false); }}
+                onClick={() => { setMode('LOGIN'); }}
                 className={`flex-1 py-2 text-xs font-bold rounded-lg transition-colors ${
                   mode === 'LOGIN'
                     ? 'bg-white text-[#232921] shadow-xs'
                     : 'text-[#6B7264] hover:text-[#232921]'
                 }`}
               >
-                Quick Login
+                Login
               </button>
               <button
                 type="button"
-                onClick={() => { setMode('REGISTER'); setOtpSent(false); }}
+                onClick={() => { setMode('REGISTER'); }}
                 className={`flex-1 py-2 text-xs font-bold rounded-lg transition-colors ${
                   mode === 'REGISTER'
                     ? 'bg-white text-[#232921] shadow-xs'
                     : 'text-[#6B7264] hover:text-[#232921]'
                 }`}
               >
-                New Registration
+                Register
               </button>
             </div>
 
             {/* Title */}
             <div className="mb-5">
               <h2 className="text-lg font-bold text-[#232921] font-heading">
-                {mode === 'LOGIN' ? 'Sign in with Mobile OTP' : `Register as ${role === 'FARMER' ? 'Farmer / FPO' : 'Buyer'}`}
+                {mode === 'LOGIN' ? 'Sign in with Email' : `Register as ${role === 'FARMER' ? 'Farmer / FPO' : 'Buyer'}`}
               </h2>
               <p className="text-xs text-[#6B7264]">
                 {mode === 'LOGIN'
-                  ? 'Enter your registered 10-digit mobile number to proceed.'
+                  ? 'Enter your email and password to sign in.'
                   : 'Enter your basic contact & location details to get started.'}
               </p>
             </div>
 
             {/* Forms */}
             {mode === 'LOGIN' ? (
-              <form onSubmit={otpSent ? handleAuthSubmit : handleSendOtp} className="space-y-4">
+              <form onSubmit={handleAuthSubmit} className="space-y-4">
                 <div>
                   <label className="block text-xs font-medium text-[#232921] mb-1.5">
-                    Mobile Number <span className="text-[#991B1B]">*</span>
+                    Email Address <span className="text-[#991B1B]">*</span>
                   </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs text-[#6B7264] font-semibold border-r border-[#E5DCCF] pr-2.5 my-2">
-                      +91
-                    </div>
-                    <input
-                      type="tel"
-                      maxLength={10}
-                      required
-                      placeholder="98765 43210"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, '') })}
-                      className="w-full pl-16 pr-3 py-2.5 bg-[#FAF7F2] border border-[#E5DCCF] rounded-xl text-sm text-[#232921] placeholder-[#8E9687] focus:outline-none focus:border-[#2D5A38] focus:bg-white transition-colors"
-                    />
-                  </div>
+                  <input
+                    type="email"
+                    required
+                    placeholder="e.g. farmer@example.com"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="w-full px-3 py-2.5 bg-[#FAF7F2] border border-[#E5DCCF] rounded-xl text-sm text-[#232921] placeholder-[#8E9687] focus:outline-none focus:border-[#2D5A38] focus:bg-white transition-colors"
+                  />
                 </div>
 
-                {otpSent && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="space-y-1.5"
-                  >
-                    <label className="block text-xs font-medium text-[#232921]">
-                      Enter 4-Digit OTP <span className="text-[#991B1B]">*</span>
-                    </label>
+                <div>
+                  <label className="block text-xs font-medium text-[#232921] mb-1.5">
+                    Password <span className="text-[#991B1B]">*</span>
+                  </label>
+                  <div className="relative">
                     <input
-                      type="text"
-                      maxLength={4}
+                      type={showPassword ? 'text' : 'password'}
                       required
-                      placeholder="e.g. 4829 (Demo auto-accepts any OTP)"
-                      value={formData.otp}
-                      onChange={(e) => setFormData({ ...formData, otp: e.target.value })}
-                      className="w-full px-3 py-2.5 bg-[#FAF7F2] border border-[#E5DCCF] rounded-xl text-sm font-mono text-[#232921] focus:outline-none focus:border-[#2D5A38] focus:bg-white transition-colors"
+                      placeholder="••••••••"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      className="w-full px-3 py-2.5 bg-[#FAF7F2] border border-[#E5DCCF] rounded-xl text-sm text-[#232921] placeholder-[#8E9687] focus:outline-none focus:border-[#2D5A38] focus:bg-white transition-colors pr-10"
                     />
-                    <p className="text-[11px] text-[#2D5A38]">OTP sent to +91 {formData.phone || '9876543210'}</p>
-                  </motion.div>
-                )}
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8E9687] hover:text-[#232921]"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
 
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full py-2.5 px-4 bg-[#2D5A38] hover:bg-[#1E3D27] text-white rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2 shadow-xs cursor-pointer"
+                  className="w-full py-2.5 px-4 bg-[#2D5A38] hover:bg-[#1E3D27] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2 shadow-xs cursor-pointer"
                 >
-                  <span>{otpSent ? 'Verify & Continue' : 'Send One-Time Password'}</span>
+                  <span>{isSubmitting ? 'Signing in...' : 'Sign In'}</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </form>
@@ -290,8 +265,37 @@ export default function Login() {
                     type="text"
                     required
                     placeholder={role === 'FARMER' ? 'e.g. Ramesh Kumar Patel' : 'e.g. Sunil Sharma'}
-                    value={formData.fullName}
-                    onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E5DCCF] rounded-xl text-xs text-[#232921] placeholder-[#8E9687] focus:outline-none focus:border-[#2D5A38] focus:bg-white transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-[#232921] mb-1">
+                    Email Address <span className="text-[#991B1B]">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="e.g. farmer@example.com"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E5DCCF] rounded-xl text-xs text-[#232921] placeholder-[#8E9687] focus:outline-none focus:border-[#2D5A38] focus:bg-white transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-[#232921] mb-1">
+                    Password <span className="text-[#991B1B]">*</span>
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    minLength="6"
+                    placeholder="Minimum 6 characters"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E5DCCF] rounded-xl text-xs text-[#232921] placeholder-[#8E9687] focus:outline-none focus:border-[#2D5A38] focus:bg-white transition-colors"
                   />
                 </div>
@@ -320,8 +324,8 @@ export default function Login() {
                       type="text"
                       required
                       placeholder="e.g. Ludhiana, Punjab"
-                      value={formData.stateCity}
-                      onChange={(e) => setFormData({ ...formData, stateCity: e.target.value })}
+                      value={formData.location}
+                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                       className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E5DCCF] rounded-xl text-xs text-[#232921] placeholder-[#8E9687] focus:outline-none focus:border-[#2D5A38] focus:bg-white transition-colors"
                     />
                   </div>

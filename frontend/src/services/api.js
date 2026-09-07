@@ -1,21 +1,21 @@
 /**
  * AgriConnect API Service
- * Connects the frontend to the deployed Railway backend with graceful fallback to local data.
+ * Connects the frontend to the local backend or Railway backend
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://agriconnect-production-120e.up.railway.app';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 export const api = {
   baseUrl: API_BASE_URL,
 
-  // Check health of the deployed Railway backend
+  // Check health of the backend
   checkHealth: async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/health`);
       if (!res.ok) throw new Error(`Health check returned status ${res.status}`);
       return await res.json();
     } catch (error) {
-      console.warn('Railway backend health check failed:', error);
+      console.warn('Backend health check failed:', error);
       return { status: 'offline', error: error.message };
     }
   },
@@ -27,69 +27,159 @@ export const api = {
       const res = await fetch(url, {
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': options.headers?.Authorization || localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : '',
           ...(options.headers || {})
         },
         ...options
       });
       if (!res.ok) {
-        throw new Error(`API Error: ${res.status} ${res.statusText}`);
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `API Error: ${res.status} ${res.statusText}`);
       }
       return await res.json();
     } catch (err) {
-      console.warn(`Request to ${url} failed, fallback may be used:`, err.message);
+      console.error(`Request to ${url} failed:`, err.message);
       throw err;
     }
   },
 
-  // Auth endpoints (calls backend if available, fallback to mock user)
-  login: async (credentials) => {
+  // Auth endpoints
+  register: async (credentials) => {
     try {
-      return await api.request('/api/auth/login', {
+      const res = await api.request('/api/users/register', {
         method: 'POST',
         body: JSON.stringify(credentials)
       });
-    } catch {
-      return {
-        token: 'jwt-demo-token',
-        user: {
-          name: credentials.fullName || (credentials.role === 'FARMER' ? 'Ramesh Kumar' : 'Sunil Sharma'),
-          phone: credentials.phone || '9876543210',
-          role: credentials.role || 'FARMER',
-          location: credentials.location || (credentials.role === 'FARMER' ? 'Ludhiana, Punjab' : 'Noida, UP'),
-          fpo: credentials.fpoName || 'Kisan Direct FPO'
-        }
-      };
+      // Store the token
+      if (res.token) {
+        localStorage.setItem('token', res.token);
+        localStorage.setItem('user', JSON.stringify(res.user));
+      }
+      return res;
+    } catch (err) {
+      console.error('Registration failed:', err);
+      throw err;
     }
   },
 
-  // Fetch listed harvest products
-  getProducts: async () => {
+  login: async (credentials) => {
     try {
-      return await api.request('/api/products');
-    } catch {
-      return null; // Signals component to retain primary rich harvest catalogue
-    }
-  },
-
-  // Create / list crop batch
-  createCrop: async (cropData) => {
-    try {
-      return await api.request('/api/crops', {
+      const res = await api.request('/api/users/login', {
         method: 'POST',
-        body: JSON.stringify(cropData)
+        body: JSON.stringify(credentials)
       });
-    } catch {
-      return { success: true, item: cropData };
+      // Store the token and user
+      if (res.token) {
+        localStorage.setItem('token', res.token);
+        localStorage.setItem('user', JSON.stringify(res.user));
+      }
+      return res;
+    } catch (err) {
+      console.error('Login failed:', err);
+      throw err;
     }
   },
 
-  // Fetch live order tracking details
-  getOrderTracking: async (orderId = 'AC-88392') => {
+  getCurrentUser: async () => {
     try {
-      return await api.request(`/api/orders/${orderId}/tracking`);
+      return await api.request('/api/users/me');
+    } catch {
+      // Fallback to stored user
+      const stored = localStorage.getItem('user');
+      return stored ? JSON.parse(stored) : null;
+    }
+  },
+
+  // Listings endpoints
+  getProducts: async (filters = {}) => {
+    try {
+      const params = new URLSearchParams(filters);
+      return await api.request(`/api/listings?${params.toString()}`);
+    } catch {
+      return { listings: [], pagination: { total: 0 } };
+    }
+  },
+
+  createListing: async (listingData) => {
+    try {
+      return await api.request('/api/listings', {
+        method: 'POST',
+        body: JSON.stringify(listingData)
+      });
+    } catch (err) {
+      console.error('Create listing failed:', err);
+      throw err;
+    }
+  },
+
+  updateListing: async (id, listingData) => {
+    try {
+      return await api.request(`/api/listings/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(listingData)
+      });
+    } catch (err) {
+      console.error('Update listing failed:', err);
+      throw err;
+    }
+  },
+
+  getPriceHistory: async (crop) => {
+    try {
+      return await api.request(`/api/listings/${crop}/price-history`);
+    } catch {
+      return { crop, history: [] };
+    }
+  },
+
+  // Order endpoints
+  createOrder: async (orderData) => {
+    try {
+      return await api.request('/api/orders', {
+        method: 'POST',
+        body: JSON.stringify(orderData)
+      });
+    } catch (err) {
+      console.error('Create order failed:', err);
+      throw err;
+    }
+  },
+
+  getOrders: async (status = null) => {
+    try {
+      const url = status
+        ? `/api/orders?status=${status}`
+        : '/api/orders';
+      return await api.request(url);
+    } catch {
+      return { orders: [] };
+    }
+  },
+
+  getOrderById: async (orderId) => {
+    try {
+      return await api.request(`/api/orders/${orderId}`);
     } catch {
       return null;
     }
+  },
+
+  updateOrderStatus: async (orderId, status) => {
+    try {
+      return await api.request(`/api/orders/${orderId}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status })
+      });
+    } catch (err) {
+      console.error('Update order status failed:', err);
+      throw err;
+    }
+  },
+
+  // Logout
+  logout: () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
   }
 };
 
