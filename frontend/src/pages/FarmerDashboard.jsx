@@ -44,6 +44,7 @@ export default function FarmerDashboard() {
   const [showModal, setShowModal] = useState(false);
   const [newCrop, setNewCrop] = useState({ name: '', stock: '', price: '', grade: 'Grade A+' });
   const [inventoryItems, setInventoryItems] = useState([]);
+  const [orders, setOrders] = useState([]);
 
   // Adjust modal state
   const [showAdjustModal, setShowAdjustModal] = useState(false);
@@ -100,64 +101,78 @@ export default function FarmerDashboard() {
     }
   };
 
-  // Load this farmer's real listings from the backend
+  // Load this farmer's real listings and orders from the backend
   const loadMyListings = async () => {
     try {
       const data = await api.getProducts();
       if (user?.id && data.listings) {
         const mine = data.listings.filter(l => l.farmer_id === user.id);
-        if (mine.length > 0) {
-          setInventoryItems(mine.map(listingToInventory));
-        }
+        setInventoryItems(mine.map(listingToInventory));
       }
     } catch (err) {
       console.warn('Could not load listings:', err.message);
     }
   };
 
+  const loadOrders = async () => {
+    try {
+      const data = await api.getOrders();
+      setOrders(data.orders || []);
+    } catch (err) {
+      console.warn('Could not load orders:', err.message);
+    }
+  };
+
   useEffect(() => {
     if (user?.id) {
       loadMyListings();
+      loadOrders();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
+  // Derive stats from real data — no hardcoded demo values for new accounts.
+  const deliveredOrders = orders.filter(o => o.status === 'delivered');
+  const totalRevenue = deliveredOrders.reduce((sum, o) => sum + Number(o.total_price || 0), 0);
+
   const stats = [
     {
       title: "Gross Mandi Revenue",
-      value: "₹1,48,200",
-      change: "+24.5%",
-      isPositive: true,
+      value: orders.length > 0 ? `₹${totalRevenue.toLocaleString('en-IN')}` : "₹0",
+      change: deliveredOrders.length > 0 ? `${deliveredOrders.length} sale${deliveredOrders.length > 1 ? 's' : ''}` : "No sales yet",
+      isPositive: totalRevenue > 0,
       icon: IndianRupee,
       description: "Direct to Bank Account"
     },
     {
       title: "Active Listed Crops",
-      value: `${inventoryItems.length} Batches`,
-      change: "+2 this week",
-      isPositive: true,
+      value: `${inventoryItems.length} Batch${inventoryItems.length !== 1 ? 'es' : ''}`,
+      change: inventoryItems.length > 0 ? "Listed on mandi" : "List crops to sell",
+      isPositive: inventoryItems.length > 0,
       icon: Package,
       description: "Ready for procurement"
     },
     {
-      title: "Direct FPO Shipments",
-      value: "34 Deliveries",
-      change: "100% on-time",
-      isPositive: true,
+      title: "Total Shipments",
+      value: `${deliveredOrders.length} Deliver${deliveredOrders.length !== 1 ? 'ies' : 'y'}`,
+      change: deliveredOrders.length > 0 ? "All completed" : "No deliveries yet",
+      isPositive: deliveredOrders.length > 0,
       icon: Truck,
-      description: "Zero transit damage"
+      description: "Completed orders"
     }
   ];
 
-  const barChartData = [
-    { day: "Mon", height: "45%", val: "₹18k" },
-    { day: "Tue", height: "60%", val: "₹24k" },
-    { day: "Wed", height: "35%", val: "₹14k" },
-    { day: "Thu", height: "80%", val: "₹32k" },
-    { day: "Fri", height: "65%", val: "₹26k" },
-    { day: "Sat", height: "95%", val: "₹38k" },
-    { day: "Sun (Proj)", height: "100%", val: "₹42k", highlight: true }
-  ];
+  // Build bar chart from last 7 orders (by created_at) when data exists, else empty.
+  const recentOrders = [...orders]
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    .slice(0, 7)
+    .reverse();
+
+  const barChartData = recentOrders.length > 0 ? recentOrders.map(o => {
+    const amt = Number(o.total_price || 0);
+    const day = new Date(o.created_at).toLocaleDateString('en-IN', { weekday: 'short' });
+    return { day, val: amt, height: `${Math.min(95, (amt / Math.max(1, ...recentOrders.map(x => Number(x.total_price || 1)))) * 90)}%` };
+  }) : [];
 
   const handleAddCrop = async (e) => {
     e.preventDefault();
@@ -322,49 +337,60 @@ export default function FarmerDashboard() {
           </div>
 
           <div className="bg-white rounded-2xl border border-[#E5DCCF] p-5 space-y-4 shadow-xs">
-            {/* Advisory note */}
-            <div className="p-3.5 rounded-xl bg-[#FAF7F2] border border-[#E5DCCF]">
-              <div className="flex items-center gap-1.5 text-[#8C6D46] text-xs font-bold mb-1">
-                <TrendingUp className="w-3.5 h-3.5" />
-                REGIONAL PRICE ADVISORY (NORTH ZONE)
+            {barChartData.length === 0 ? (
+              <div className="text-center py-8">
+                <TrendingUp className="w-10 h-10 text-[#E5DCCF] mx-auto mb-3" />
+                <p className="text-sm font-semibold text-[#232921] mb-1">No order data yet</p>
+                <p className="text-xs text-[#6B7264]">
+                  Mandi demand intelligence and payout charts will appear once buyers start placing orders on your listings.
+                </p>
               </div>
-              <p className="text-xs text-[#6B7264] leading-relaxed">
-                Market trends show a <strong className="text-[#2D5A38]">+18% price surge</strong> for Tomatoes & Onions over the next 5 days due to festival procurement.
-              </p>
-            </div>
-
-            {/* Visual Bar Chart */}
-            <div>
-              <div className="flex items-center justify-between text-xs text-[#6B7264] font-medium mb-2">
-                <span>7-Day Daily Mandi Payout</span>
-                <span className="text-[#2D5A38] font-bold">+28% growth</span>
-              </div>
-
-              <div className="h-36 bg-[#FAF7F2] rounded-xl border border-[#E5DCCF] p-3 pt-5 flex items-end justify-between gap-1.5">
-                {barChartData.map((bar, i) => (
-                  <div key={i} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end group">
-                    <div className="text-[9px] font-mono text-[#8E9687] group-hover:text-[#232921] transition-colors">
-                      {bar.val}
-                    </div>
-                    <motion.div
-                      initial={{ height: 0 }}
-                      animate={{ height: bar.height }}
-                      transition={{ duration: 0.5, delay: i * 0.05 }}
-                      className={`w-full rounded-t-md transition-all ${
-                        bar.highlight
-                          ? 'bg-[#2D5A38]'
-                          : 'bg-[#C2D6C6] group-hover:bg-[#2D5A38]'
-                      }`}
-                    />
-                    <span className="text-[10px] text-[#6B7264] font-medium">{bar.day.slice(0, 3)}</span>
+            ) : (
+              <>
+                {/* Advisory note — derived from real order data */}
+                <div className="p-3.5 rounded-xl bg-[#FAF7F2] border border-[#E5DCCF]">
+                  <div className="flex items-center gap-1.5 text-[#8C6D46] text-xs font-bold mb-1">
+                    <TrendingUp className="w-3.5 h-3.5" />
+                    ORDER SUMMARY
                   </div>
-                ))}
-              </div>
-            </div>
+                  <p className="text-xs text-[#6B7264] leading-relaxed">
+                    You have <strong className="text-[#2D5A38]">{orders.length} order{orders.length !== 1 ? 's' : ''}</strong> total
+                    {deliveredOrders.length > 0 ? `, with <strong className="text-[#2D5A38]">${deliveredOrders.length} delivered</strong> and ₹${totalRevenue.toLocaleString('en-IN')} earned.` : ' — all pending or in transit.'}
+                  </p>
+                </div>
 
-            <p className="text-[11px] text-[#6B7264]">
-              Tip: Holding 30% onion stock until Thursday can maximize average realisation.
-            </p>
+                {/* Visual Bar Chart */}
+                <div>
+                  <div className="flex items-center justify-between text-xs text-[#6B7264] font-medium mb-2">
+                    <span>Recent Order Values</span>
+                    <span className="text-[#2D5A38] font-bold">
+                      {deliveredOrders.length > 0 ? `${deliveredOrders.length} completed` : `${orders.length} in progress`}
+                    </span>
+                  </div>
+
+                  <div className="h-36 bg-[#FAF7F2] rounded-xl border border-[#E5DCCF] p-3 pt-5 flex items-end justify-between gap-1.5">
+                    {barChartData.map((bar, i) => (
+                      <div key={i} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end group">
+                        <div className="text-[9px] font-mono text-[#8E9687] group-hover:text-[#232921] transition-colors">
+                          ₹{bar.val}
+                        </div>
+                        <motion.div
+                          initial={{ height: 0 }}
+                          animate={{ height: bar.height }}
+                          transition={{ duration: 0.5, delay: i * 0.05 }}
+                          className={`w-full rounded-t-md transition-all ${
+                            i === barChartData.length - 1
+                              ? 'bg-[#2D5A38]'
+                              : 'bg-[#C2D6C6] group-hover:bg-[#2D5A38]'
+                          }`}
+                        />
+                        <span className="text-[10px] text-[#6B7264] font-medium">{bar.day.slice(0, 3)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
