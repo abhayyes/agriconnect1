@@ -15,14 +15,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../services/api';
 import { useAuth } from '../App';
 
-// Fallback/seed inventory shown when no live listings load yet
-const DEFAULT_INVENTORY = [
-  { id: 1, name: "Organic Vine Tomatoes", grade: "Grade A+", stock: "450 kg", price: "₹35/kg", demand: "High Demand", status: "Active in Mandi" },
-  { id: 2, name: "Golden Sharbati Wheat", grade: "Grade A", stock: "1,200 kg", price: "₹28/kg", demand: "Surging Demand", status: "Active in Mandi" },
-  { id: 3, name: "Nashik Red Onions", grade: "Grade B+", stock: "800 kg", price: "₹24/kg", demand: "Peak Demand", status: "Dispatched (In Transit)" },
-  { id: 4, name: "Aromatic Basmati Rice", grade: "Grade A+", stock: "350 kg", price: "₹85/kg", demand: "Stable", status: "Active in Mandi" }
-];
-
+// NOTE: Inventory is loaded from the logged-in farmer's OWN listings via the
+// backend (getProducts filtered by farmer_id). Demo/sample crops only exist as
+// real DB rows for the demo accounts — never as a hardcoded frontend fallback,
+// so a newly-registered farmer starts empty and lists their own crops.
 function listingToInventory(l) {
   const cropLower = (l.crop || '').toLowerCase();
   const highDemand = /tomato|onion|potato|mango/.test(cropLower);
@@ -47,7 +43,7 @@ export default function FarmerDashboard() {
   const { user } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [newCrop, setNewCrop] = useState({ name: '', stock: '', price: '', grade: 'Grade A+' });
-  const [inventoryItems, setInventoryItems] = useState(DEFAULT_INVENTORY);
+  const [inventoryItems, setInventoryItems] = useState([]);
 
   // Adjust modal state
   const [showAdjustModal, setShowAdjustModal] = useState(false);
@@ -262,6 +258,22 @@ export default function FarmerDashboard() {
           </div>
 
           <div className="bg-white rounded-2xl border border-[#E5DCCF] overflow-hidden shadow-xs">
+            {inventoryItems.length === 0 ? (
+              <div className="p-10 text-center">
+                <Package className="w-12 h-12 text-[#E5DCCF] mx-auto mb-3" />
+                <h3 className="text-sm font-bold text-[#232921] mb-1">No crops listed yet</h3>
+                <p className="text-xs text-[#6B7264] mb-4 max-w-sm mx-auto">
+                  You haven't listed any crops yet. Add your own harvest to start selling directly to buyers in the marketplace.
+                </p>
+                <button
+                  onClick={() => setShowModal(true)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#2D5A38] hover:bg-[#1E3D27] text-white font-semibold rounded-xl text-xs shadow-xs transition-colors cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>List Your First Crop</span>
+                </button>
+              </div>
+            ) : (
             <div className="divide-y divide-[#E5DCCF]">
               {inventoryItems.map((item) => (
                 <div key={item.id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-[#FAF7F2] transition-colors">
@@ -296,6 +308,7 @@ export default function FarmerDashboard() {
                 </div>
               ))}
             </div>
+            )}
           </div>
         </div>
 

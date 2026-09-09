@@ -48,6 +48,27 @@ CITY_COORDINATES: Dict[str, Tuple[float, float]] = {
     "kolkata": (22.5726, 88.3639),
     "ahmedabad": (23.0225, 72.5714),
     "nagpur": (21.1458, 79.0882),
+    # --- Extended coverage for geographies used in the marketplace seed/mock data ---
+    # (Previously missing — these fell back to Delhi, producing near-zero/incorrect routes.)
+    "karnal": (29.6857, 76.9905),
+    "karnal, haryana": (29.6857, 76.9905),
+    "haryana": (29.6857, 76.9905),
+    "panipat": (29.3909, 76.9635),
+    "gurugram": (28.4595, 77.0266),
+    "gurgaon": (28.4595, 77.0266),
+    "bareilly": (28.3670, 79.4304),
+    "bareilly, up": (28.3670, 79.4304),
+    "uttar pradesh": (26.8467, 80.9462),
+    "shimla": (31.1048, 77.1734),
+    "shimla, hp": (31.1048, 77.1734),
+    "himachal pradesh": (31.1048, 77.1734),
+    "anantnag": (33.7290, 75.1507),
+    "anantnag, j&k": (33.7290, 75.1507),
+    "jammu and kashmir": (33.7290, 75.1507),
+    "jammu": (32.7266, 74.8570),
+    "kashmir": (34.0837, 74.7973),
+    "srinagar": (34.0837, 74.7973),
+    "ludhiana, punjab": (30.9010, 75.8573),
 }
 
 AVG_SPEED_KMH = 45.0

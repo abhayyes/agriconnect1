@@ -247,92 +247,10 @@ export default function Marketplace() {
   const { user } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
-  const [products, setProducts] = useState([
-    {
-      id: 1,
-      name: "Organic Vine Tomatoes",
-      farmer: "Ramesh Kumar (Kisan FPO)",
-      location: "Ludhiana, Punjab",
-      price: 35,
-      unit: "kg",
-      stock: "500 kg",
-      stockNumber: 500,
-      isDirect: true,
-      organic: true,
-      emoji: "🍅",
-      category: "Vegetables"
-    },
-    {
-      id: 2,
-      name: "Golden Sharbati Wheat",
-      farmer: "Malwa Agri Cooperative",
-      location: "Karnal, Haryana",
-      price: 28,
-      unit: "kg",
-      stock: "1,200 kg",
-      stockNumber: 1200,
-      isDirect: true,
-      organic: true,
-      emoji: "🌾",
-      category: "Grains"
-    },
-    {
-      id: 3,
-      name: "Aromatic Basmati Rice",
-      farmer: "Suresh Singh Rawat",
-      location: "Bareilly, UP",
-      price: 85,
-      unit: "kg",
-      stock: "850 kg",
-      stockNumber: 850,
-      isDirect: true,
-      organic: false,
-      emoji: "🍚",
-      category: "Grains"
-    },
-    {
-      id: 4,
-      name: "Nashik Red Onions",
-      farmer: "Sahyadri Farmers Collective",
-      location: "Nashik, Maharashtra",
-      price: 24,
-      unit: "kg",
-      stock: "2,000 kg",
-      stockNumber: 2000,
-      isDirect: true,
-      organic: false,
-      emoji: "🧅",
-      category: "Vegetables"
-    },
-    {
-      id: 5,
-      name: "Himachal Royal Gala Apples",
-      farmer: "Devbhoomi Orchard FPO",
-      location: "Shimla, HP",
-      price: 130,
-      unit: "kg",
-      stock: "400 kg",
-      stockNumber: 400,
-      isDirect: true,
-      organic: true,
-      emoji: "🍎",
-      category: "Fruits"
-    },
-    {
-      id: 6,
-      name: "Kashmiri Walnuts (In Shell)",
-      farmer: "Gulmarg Valley Growers",
-      location: "Anantnag, J&K",
-      price: 340,
-      unit: "kg",
-      stock: "150 kg",
-      stockNumber: 150,
-      isDirect: true,
-      organic: true,
-      emoji: "🥜",
-      category: "Dry Fruits"
-    }
-  ]);
+  // Products load from real backend listings (getProducts) keyed to different
+  // farmers. Starts empty — no hardcoded sample crops, so buyers only ever see
+  // actual listings (demo crops exist only as real DB rows for demo accounts).
+  const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [orders, setOrders] = useState([]);
 
