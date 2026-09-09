@@ -8,7 +8,8 @@ import {
   Truck,
   CheckCircle2,
   Wheat,
-  X
+  X,
+  Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../services/api';
@@ -32,7 +33,13 @@ function listingToInventory(l) {
     stock: `${l.quantity} ${l.unit}`,
     price: `₹${l.price_per_unit}/${l.unit}`,
     demand: highDemand ? 'High Mandi Demand' : 'Active in Mandi',
-    status: 'Active in Mandi'
+    status: 'Active in Mandi',
+    // Raw fields for the adjust modal
+    rawId: l.id,
+    rawPricePerUnit: Number(l.price_per_unit),
+    rawQuantity: Number(l.quantity),
+    rawUnit: l.unit || 'kg',
+    rawVariety: l.variety || 'Grade A+'
   };
 }
 
@@ -41,6 +48,61 @@ export default function FarmerDashboard() {
   const [showModal, setShowModal] = useState(false);
   const [newCrop, setNewCrop] = useState({ name: '', stock: '', price: '', grade: 'Grade A+' });
   const [inventoryItems, setInventoryItems] = useState(DEFAULT_INVENTORY);
+
+  // Adjust modal state
+  const [showAdjustModal, setShowAdjustModal] = useState(false);
+  const [adjustItem, setAdjustItem] = useState(null);
+  const [adjustForm, setAdjustForm] = useState({ price: '', quantity: '' });
+  const [adjusting, setAdjusting] = useState(false);
+
+  const handleOpenAdjust = (item) => {
+    setAdjustItem(item);
+    setAdjustForm({
+      price: String(item.rawPricePerUnit || ''),
+      quantity: String(item.rawQuantity || '')
+    });
+    setShowAdjustModal(true);
+  };
+
+  const handleSaveAdjust = async () => {
+    if (!adjustItem) return;
+    const price = parseFloat(adjustForm.price);
+    const qty = parseFloat(adjustForm.quantity);
+    if (isNaN(price) || price < 0 || isNaN(qty) || qty < 0) {
+      alert('Please enter valid price and quantity.');
+      return;
+    }
+    setAdjusting(true);
+    try {
+      await api.updateListing(adjustItem.rawId, {
+        price_per_unit: price,
+        quantity: qty
+      });
+      await loadMyListings();
+      setShowAdjustModal(false);
+      setAdjustItem(null);
+    } catch (err) {
+      alert(`Failed to update listing: ${err.message}`);
+    } finally {
+      setAdjusting(false);
+    }
+  };
+
+  const handleRemoveListing = async () => {
+    if (!adjustItem) return;
+    if (!confirm(`Remove "${adjustItem.name}" from your active listings? It will no longer be visible to buyers.`)) return;
+    setAdjusting(true);
+    try {
+      await api.updateListing(adjustItem.rawId, { status: 'inactive' });
+      await loadMyListings();
+      setShowAdjustModal(false);
+      setAdjustItem(null);
+    } catch (err) {
+      alert(`Failed to remove listing: ${err.message}`);
+    } finally {
+      setAdjusting(false);
+    }
+  };
 
   // Load this farmer's real listings from the backend
   const loadMyListings = async () => {
@@ -224,7 +286,10 @@ export default function FarmerDashboard() {
                         <CheckCircle2 className="w-3.5 h-3.5 text-[#2D5A38]" /> {item.status}
                       </span>
                     </div>
-                    <button className="px-3 py-1.5 rounded-lg bg-[#FAF7F2] hover:bg-[#F2ECE1] text-[#232921] border border-[#E5DCCF] text-xs font-semibold transition-colors cursor-pointer">
+                    <button
+                      onClick={() => handleOpenAdjust(item)}
+                      className="px-3 py-1.5 rounded-lg bg-[#FAF7F2] hover:bg-[#F2ECE1] text-[#232921] border border-[#E5DCCF] text-xs font-semibold transition-colors cursor-pointer"
+                    >
                       Adjust
                     </button>
                   </div>
@@ -379,6 +444,90 @@ export default function FarmerDashboard() {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Adjust Listing Modal */}
+      <AnimatePresence>
+        {showAdjustModal && adjustItem && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#232921]/60 backdrop-blur-xs">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ duration: 0.2 }}
+              className="bg-white border border-[#E5DCCF] rounded-2xl p-6 w-full max-w-md shadow-lg relative"
+            >
+              <button
+                onClick={() => { setShowAdjustModal(false); setAdjustItem(null); }}
+                className="absolute top-4 right-4 p-1 text-[#8E9687] hover:text-[#232921] rounded-lg hover:bg-[#FAF7F2]"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <h3 className="text-lg font-bold text-[#232921] font-heading mb-1">Adjust Listing</h3>
+              <p className="text-xs text-[#6B7264] mb-4">
+                Update price and stock for <strong>{adjustItem.name}</strong> ({adjustItem.grade}).
+              </p>
+
+              <div className="space-y-3.5">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-[#232921] mb-1">
+                      Price (₹ per {adjustItem.rawUnit})
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.5"
+                      value={adjustForm.price}
+                      onChange={(e) => setAdjustForm({ ...adjustForm, price: e.target.value })}
+                      className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E5DCCF] rounded-xl text-xs text-[#232921] focus:outline-none focus:border-[#2D5A38] focus:bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-[#232921] mb-1">
+                      Stock ({adjustItem.rawUnit})
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={adjustForm.quantity}
+                      onChange={(e) => setAdjustForm({ ...adjustForm, quantity: e.target.value })}
+                      className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E5DCCF] rounded-xl text-xs text-[#232921] focus:outline-none focus:border-[#2D5A38] focus:bg-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2 flex justify-between">
+                  <button
+                    onClick={handleRemoveListing}
+                    disabled={adjusting}
+                    className="px-3 py-2 rounded-xl bg-white text-[#991B1B] border border-red-200 text-xs font-semibold hover:bg-red-50 transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Remove Listing
+                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => { setShowAdjustModal(false); setAdjustItem(null); }}
+                      className="px-4 py-2 rounded-xl bg-[#FAF7F2] text-[#6B7264] hover:text-[#232921] text-xs font-semibold"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSaveAdjust}
+                      disabled={adjusting}
+                      className="px-4 py-2 rounded-xl bg-[#2D5A38] hover:bg-[#1E3D27] text-white font-semibold text-xs shadow-xs cursor-pointer disabled:opacity-50"
+                    >
+                      {adjusting ? 'Saving…' : 'Save Changes'}
+                    </button>
+                  </div>
+                </div>
+              </div>
             </motion.div>
           </div>
         )}
