@@ -9,6 +9,7 @@ import Orders from './pages/Orders';
 import { api } from './services/api';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import LanguageToggle from './components/LanguageToggle';
+import FarmerAssistantChat from './components/FarmerAssistantChat';
 
 // Simple lightweight AuthContext for authentic session state
 export const AuthContext = createContext(null);
@@ -236,6 +237,7 @@ function AppContent({ user }) {
           </div>
         </div>
       </footer>
+      <FarmerAssistantChat />
     </div>
   );
 }
