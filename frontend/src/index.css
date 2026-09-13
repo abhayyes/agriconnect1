@@ -5,32 +5,70 @@
     --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     --font-heading: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
 
-    /* Earthy Beige & Forest Green Organic Palette */
-    --color-beige-bg: #FAF7F2;
-    --color-beige-card: #FFFFFF;
-    --color-beige-subtle: #F2ECE1;
-    --color-beige-border: #E5DCCF;
-    --color-beige-hover: #EBE3D5;
+    /* ===== Light theme tokens =====
+       Semantic variables referenced in JSX via Tailwind's
+       `bg-(--token)` shorthand, so a single `data-theme` flip on <html>
+       recolours the whole app. */
+    --canvas: #FAF7F2;
+    --card: #FFFFFF;
+    --subtle: #F2ECE1;
+    --line: #E5DCCF;
+    --line-strong: #C2D6C6;
+    --moss: #E8F0E9;
+    --moss-strong: #DCE9DE;
 
-    --color-forest-dark: #1E3D27;
-    --color-forest-primary: #2D5A38;
-    --color-forest-light: #447B52;
-    --color-moss-subtle: #E8F0E9;
-    --color-warm-earth: #8C6D46;
+    --leaf: #2D5A38;
+    --leaf-deep: #1E3D27;
+    --leaf-soft: #447B52;
 
-    --color-text-main: #232921;
-    --color-text-muted: #6B7264;
-    --color-text-light: #8E9687;
+    --ink: #232921;
+    --ink-soft: #3A4036;
+    --muted: #6B7264;
+    --faint: #8E9687;
 
-    /* Custom easing curves from Emil Kowalski */
+    --earth: #8C6D46;
+
+    --danger: #991B1B;
+    --danger-soft: #FEE2E2;
+    --success-soft: #ECFDF3;
+    --warn-soft: #FFFBEB;
+    --info-soft: #EFF4FF;
+    --violet-soft: #F3EFFF;
+
     --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
     --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   }
 
+  [data-theme="dark"] {
+    --canvas: #141A1D;
+    --card: #1D262B;
+    --subtle: #222C31;
+    --line: #2E3A40;
+    --line-strong: #3E4C53;
+    --moss: #24352A;
+    --moss-strong: #2E4536;
+
+    --leaf: #4C8A5C;
+    --leaf-deep: #5BA06C;
+    --leaf-soft: #6AA87C;
+
+    --ink: #E7EDE4;
+    --ink-soft: #C6CFC4;
+    --muted: #9AA6A0;
+    --faint: #6E7A74;
+
+    --danger: #F87171;
+    --danger-soft: #3A2426;
+    --success-soft: #1B2E22;
+    --warn-soft: #2E2A1C;
+    --info-soft: #1B2740;
+    --violet-soft: #251F3D;
+  }
+
   body {
     font-family: var(--font-sans);
-    background-color: var(--color-beige-bg);
-    color: var(--color-text-main);
+    background-color: var(--canvas);
+    color: var(--ink);
   }
 
   h1, h2, h3, h4, .font-heading {
@@ -50,8 +88,8 @@ button:active:not(:disabled), [role="button"]:active:not(:disabled), a.btn:activ
 
 /* Clean Organic Card & Paper Shadows (Authentic, not glossy AI glow) */
 .craft-card {
-  background-color: #FFFFFF;
-  border: 1px solid #E5DCCF;
+  background-color: var(--card);
+  border: 1px solid var(--line);
   box-shadow: 0 1px 3px 0 rgba(45, 51, 40, 0.04), 0 1px 2px -1px rgba(45, 51, 40, 0.04);
 }
 
@@ -60,22 +98,22 @@ button:active:not(:disabled), [role="button"]:active:not(:disabled), a.btn:activ
 }
 
 .craft-card-hover:hover {
-  border-color: #C2D6C6;
-  box-shadow: 0 8px 20px -4px rgba(45, 90, 56, 0.08), 0 4px 6px -2px rgba(45, 90, 56, 0.04);
+  border-color: var(--line-strong);
+  box-shadow: 0 8px 20px -4px rgba(76, 138, 92, 0.08), 0 4px 6px -2px rgba(76, 138, 92, 0.04);
 }
 
-/* Custom scrollbar matching organic beige */
+/* Custom scrollbar matching the theme */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #FAF7F2;
+  background: var(--canvas);
 }
 ::-webkit-scrollbar-thumb {
-  background: #D8CEBE;
+  background: var(--line);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #BAAC98;
+  background: var(--muted);
 }

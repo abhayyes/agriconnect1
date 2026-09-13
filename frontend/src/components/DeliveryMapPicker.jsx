@@ -48,7 +48,7 @@ export default function DeliveryMapPicker({
 
   return (
     <div>
-      <div className="rounded-xl overflow-hidden border border-[#E5DCCF]" style={{ height }}>
+      <div className="rounded-xl overflow-hidden border border-(--line)" style={{ height }}>
         <MapContainer
           className="h-full w-full"
           style={{ height, width: '100%' }}
@@ -77,7 +77,7 @@ export default function DeliveryMapPicker({
       </div>
 
       <div className="mt-1.5 flex items-center justify-between">
-        <p className="text-[11px] text-[#6B7264]">
+        <p className="text-[11px] text-(--muted)">
           {markerPosition
             ? `📍 Pin at ${markerPosition[0].toFixed(4)}, ${markerPosition[1].toFixed(4)}`
             : '🗺️ Click on the map to pin your delivery location'}
@@ -86,7 +86,7 @@ export default function DeliveryMapPicker({
           type="button"
           onClick={useMyLocation}
           disabled={locating}
-          className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#2D5A38] hover:underline disabled:opacity-50"
+          className="inline-flex items-center gap-1 text-[11px] font-semibold text-(--leaf) hover:underline disabled:opacity-50"
         >
           <LocateFixed className="w-3 h-3" />
           {locating ? 'Locating…' : 'Use my location'}

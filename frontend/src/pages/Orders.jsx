@@ -8,11 +8,11 @@ import { useAuth } from '../App';
 import { useLanguage } from '../context/LanguageContext';
 
 const statusColors = {
-  pending: 'bg-amber-50 text-amber-700 border-amber-200',
-  confirmed: 'bg-blue-50 text-blue-700 border-blue-200',
-  shipped: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-  delivered: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  cancelled: 'bg-red-50 text-red-700 border-red-200'
+  pending: 'bg-(--warn-soft) text-amber-700 border-(--warn-soft)',
+  confirmed: 'bg-(--info-soft) text-blue-700 border-(--info-soft)',
+  shipped: 'bg-(--violet-soft) text-indigo-700 border-(--violet-soft)',
+  delivered: 'bg-(--success-soft) text-emerald-700 border-(--success-soft)',
+  cancelled: 'bg-(--danger-soft) text-red-700 border-(--danger-soft)'
 };
 
 export default function Orders() {
@@ -76,7 +76,7 @@ export default function Orders() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-2 border-[#2D5A38] border-t-transparent"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-2 border-(--leaf) border-t-transparent"></div>
       </div>
     );
   }
@@ -84,10 +84,10 @@ export default function Orders() {
   if (!user) {
     return (
       <div className="text-center py-12">
-        <p className="text-[#6B7264] mb-4">{t('orders.auth.loginPrompt')}</p>
+        <p className="text-(--muted) mb-4">{t('orders.auth.loginPrompt')}</p>
         <button
           onClick={() => navigate('/login')}
-          className="px-6 py-2 bg-[#2D5A38] text-white rounded-xl text-sm font-semibold"
+          className="px-6 py-2 bg-(--leaf) text-white rounded-xl text-sm font-semibold"
         >
           {t('orders.auth.login')}
         </button>
@@ -100,29 +100,29 @@ export default function Orders() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#232921] font-heading">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-(--ink) font-heading">
             {isBuyer ? t('orders.heading.buyerTitle') : t('orders.heading.farmerTitle')}
           </h1>
-          <p className="text-xs sm:text-sm text-[#6B7264] mt-1">
+          <p className="text-xs sm:text-sm text-(--muted) mt-1">
             {isBuyer
               ? t('orders.heading.buyerDesc')
               : t('orders.heading.farmerDesc')}
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="bg-white px-4 py-2 rounded-xl border border-[#E5DCCF] shadow-xs">
-            <span className="text-[10px] text-[#8E9687] uppercase font-semibold">{t('orders.stats.totalOrders')}</span>
-            <div className="text-lg font-bold text-[#232921]">{orders.length}</div>
+          <div className="bg-(--card) px-4 py-2 rounded-xl border border-(--line) shadow-xs">
+            <span className="text-[10px] text-(--faint) uppercase font-semibold">{t('orders.stats.totalOrders')}</span>
+            <div className="text-lg font-bold text-(--ink)">{orders.length}</div>
           </div>
         </div>
       </div>
 
       {/* Order List */}
       {orders.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-2xl border border-[#E5DCCF]">
-          <ShoppingBag className="w-16 h-16 text-[#E5DCCF] mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-[#232921] mb-2">{t('orders.empty.title')}</h3>
-          <p className="text-[#6B7264] text-sm mb-6">
+        <div className="text-center py-16 bg-(--card) rounded-2xl border border-(--line)">
+          <ShoppingBag className="w-16 h-16 text-(--line) mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-(--ink) mb-2">{t('orders.empty.title')}</h3>
+          <p className="text-(--muted) text-sm mb-6">
             {isBuyer
               ? t('orders.empty.buyerDesc')
               : t('orders.empty.farmerDesc')}
@@ -130,14 +130,14 @@ export default function Orders() {
           {isBuyer ? (
             <button
               onClick={() => navigate('/marketplace')}
-              className="px-6 py-2.5 bg-[#2D5A38] text-white rounded-xl text-sm font-semibold shadow-xs hover:bg-[#1E3D27]"
+              className="px-6 py-2.5 bg-(--leaf) text-white rounded-xl text-sm font-semibold shadow-xs hover:bg-(--leaf-deep)"
             >
               {t('orders.button.browseMarketplace')}
             </button>
           ) : (
             <button
               onClick={() => navigate('/dashboard')}
-              className="px-6 py-2.5 bg-[#2D5A38] text-white rounded-xl text-sm font-semibold shadow-xs hover:bg-[#1E3D27]"
+              className="px-6 py-2.5 bg-(--leaf) text-white rounded-xl text-sm font-semibold shadow-xs hover:bg-(--leaf-deep)"
             >
               {t('orders.button.viewMyListings')}
             </button>
@@ -151,27 +151,27 @@ export default function Orders() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: index * 0.05 }}
-              className="bg-white rounded-2xl border border-[#E5DCCF] shadow-xs overflow-hidden"
+              className="bg-(--card) rounded-2xl border border-(--line) shadow-xs overflow-hidden"
             >
               <div className="p-5">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
                   <div className="flex items-center gap-3">
                     <div className={`p-2.5 rounded-xl ${
-                      order.status === 'delivered' ? 'bg-emerald-100 text-emerald-600' :
-                      order.status === 'cancelled' ? 'bg-red-100 text-red-600' :
-                      order.status === 'shipped' ? 'bg-indigo-100 text-indigo-600' :
-                      'bg-amber-100 text-amber-600'
+                      order.status === 'delivered' ? 'bg-(--success-soft) text-emerald-600' :
+                      order.status === 'cancelled' ? 'bg-(--danger-soft) text-red-600' :
+                      order.status === 'shipped' ? 'bg-(--violet-soft) text-indigo-600' :
+                      'bg-(--warn-soft) text-amber-600'
                     }`}>
                       {getStatusIcon(order.status)}
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-[#232921]">{t('orders.card.orderNumber')}{order.id.slice(0, 8)}</span>
+                        <span className="text-sm font-bold text-(--ink)">{t('orders.card.orderNumber')}{order.id.slice(0, 8)}</span>
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium border ${statusColors[order.status] || statusColors.pending}`}>
                           {t('orders.status.' + order.status) || order.status}
                         </span>
                       </div>
-                      <p className="text-xs text-[#6B7264] mt-0.5">
+                      <p className="text-xs text-(--muted) mt-0.5">
                         {new Date(order.created_at).toLocaleDateString('en-IN', {
                           day: 'numeric',
                           month: 'short',
@@ -181,30 +181,30 @@ export default function Orders() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-lg font-bold text-[#2D5A38]">
+                    <div className="text-lg font-bold text-(--leaf)">
                       ₹{order.total_price}
                     </div>
-                    <div className="text-xs text-[#6B7264]">
+                    <div className="text-xs text-(--muted)">
                       {order.quantity} {order.unit}
                     </div>
                   </div>
                 </div>
 
                 {/* Order Details */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-[#E5DCCF]">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-(--line)">
                   <div className="flex items-start gap-3">
-                    <div className="p-2 bg-[#FAF7F2] rounded-lg text-[#6B7264]">
+                    <div className="p-2 bg-(--canvas) rounded-lg text-(--muted)">
                       <ShoppingBag className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="text-[10px] text-[#8E9687] uppercase font-semibold mb-0.5">{t('orders.card.product')}</p>
-                      <p className="text-sm font-medium text-[#232921]">{order.crop}</p>
-                      <p className="text-xs text-[#6B7264] mt-1">{order.quantity} {order.unit}</p>
+                      <p className="text-[10px] text-(--faint) uppercase font-semibold mb-0.5">{t('orders.card.product')}</p>
+                      <p className="text-sm font-medium text-(--ink)">{order.crop}</p>
+                      <p className="text-xs text-(--muted) mt-1">{order.quantity} {order.unit}</p>
                       {isBuyer && order.payment_method && (
                         <span className={`inline-flex items-center mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
                           order.payment_status === 'paid'
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            : 'bg-amber-50 text-amber-700 border-amber-200'
+                            ? 'bg-(--success-soft) text-emerald-700 border-(--success-soft)'
+                            : 'bg-(--warn-soft) text-amber-700 border-(--warn-soft)'
                         }`}>
                           {order.payment_method.toUpperCase()}
                           {' · '}
@@ -215,17 +215,17 @@ export default function Orders() {
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <div className="p-2 bg-[#FAF7F2] rounded-lg text-[#6B7264]">
+                    <div className="p-2 bg-(--canvas) rounded-lg text-(--muted)">
                       <User className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="text-[10px] text-[#8E9687] uppercase font-semibold mb-0.5">
+                      <p className="text-[10px] text-(--faint) uppercase font-semibold mb-0.5">
                         {isBuyer ? t('orders.card.sellerLabel') : t('orders.card.buyerLabel')}
                       </p>
-                      <p className="text-sm font-medium text-[#232921]">
+                      <p className="text-sm font-medium text-(--ink)">
                         {isBuyer ? (order.seller_name || 'Farm') : (order.buyer_name || user.name)}
                       </p>
-                      <p className="text-xs text-[#6B7264] mt-1">
+                      <p className="text-xs text-(--muted) mt-1">
                         {isBuyer
                           ? (order.seller_phone || order.seller_email || '')
                           : (order.buyer_phone || order.buyer_email || '')}
@@ -234,12 +234,12 @@ export default function Orders() {
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <div className="p-2 bg-[#FAF7F2] rounded-lg text-[#6B7264]">
+                    <div className="p-2 bg-(--canvas) rounded-lg text-(--muted)">
                       <MapPin className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="text-[10px] text-[#8E9687] uppercase font-semibold mb-0.5">{t('orders.card.deliveryTo')}</p>
-                      <p className="text-sm font-medium text-[#232921]">
+                      <p className="text-[10px] text-(--faint) uppercase font-semibold mb-0.5">{t('orders.card.deliveryTo')}</p>
+                      <p className="text-sm font-medium text-(--ink)">
                         {order.delivery_address || (isFarmer && order.buyer_location) || t('orders.card.addressNotProvided')}
                       </p>
                       {(order.route?.pickup_coords) && (
@@ -261,13 +261,13 @@ export default function Orders() {
                         })()
                       )}
                       {order.route ? (
-                        <p className="text-xs text-[#6B7264] mt-1">
+                        <p className="text-xs text-(--muted) mt-1">
                           🚛 {order.route.distance_km ? `${order.route.distance_km} km` : ''}
                           {order.route.estimated_time_min ? ` · ~${order.route.estimated_time_min}${t('common.minutes')}` : ''}
                           {' · ' + t('orders.card.aiRouteOptimized')}
                         </p>
                       ) : (
-                        <p className="text-xs text-[#8E9687] mt-1">{t('orders.card.aiRoutePending')}</p>
+                        <p className="text-xs text-(--faint) mt-1">{t('orders.card.aiRoutePending')}</p>
                       )}
                     </div>
                   </div>
@@ -284,18 +284,18 @@ export default function Orders() {
                   const currentIdx = steps.findIndex(s => s.key === order.status);
 
                   const colorMap = {
-                    amber:   { dot: 'bg-amber-500',  ring: 'ring-amber-100',  text: 'text-amber-700',  line: 'bg-amber-200' },
-                    blue:    { dot: 'bg-blue-500',   ring: 'ring-blue-100',   text: 'text-blue-700',   line: 'bg-blue-200' },
-                    indigo:  { dot: 'bg-indigo-500',  ring: 'ring-indigo-100', text: 'text-indigo-700', line: 'bg-indigo-200' },
-                    emerald: { dot: 'bg-emerald-500', ring: 'ring-emerald-100', text: 'text-emerald-700', line: 'bg-emerald-200' }
+                    amber:   { dot: 'bg-(--warn-soft)0',  ring: 'ring-(--warn-soft)',  text: 'text-amber-700',  line: 'bg-amber-200' },
+                    blue:    { dot: 'bg-(--info-soft)0',   ring: 'ring-(--info-soft)',   text: 'text-blue-700',   line: 'bg-blue-200' },
+                    indigo:  { dot: 'bg-(--violet-soft)0',  ring: 'ring-(--violet-soft)', text: 'text-indigo-700', line: 'bg-indigo-200' },
+                    emerald: { dot: 'bg-(--success-soft)0', ring: 'ring-(--success-soft)', text: 'text-emerald-700', line: 'bg-emerald-200' }
                   };
 
                   return (
-                    <div className="mt-4 pt-4 border-t border-[#E5DCCF]">
+                    <div className="mt-4 pt-4 border-t border-(--line)">
                       {/* Buyer "dispatch on the move" banner */}
                       {isBuyer && currentIdx >= 2 && (
-                        <div className="mb-4 px-4 py-3 bg-indigo-50 border border-indigo-200 rounded-xl flex items-center gap-3">
-                          <div className="p-2 bg-indigo-100 rounded-lg">
+                        <div className="mb-4 px-4 py-3 bg-(--violet-soft) border border-(--violet-soft) rounded-xl flex items-center gap-3">
+                          <div className="p-2 bg-(--violet-soft) rounded-lg">
                             <Ship className="w-5 h-5 text-indigo-600" />
                           </div>
                           <div>
@@ -310,8 +310,8 @@ export default function Orders() {
 
                       {/* Farmer route details */}
                       {isFarmer && order.route && (
-                        <div className="mb-4 px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center gap-3">
-                          <div className="p-2 bg-blue-100 rounded-lg">
+                        <div className="mb-4 px-4 py-3 bg-(--info-soft) border border-(--info-soft) rounded-xl flex items-center gap-3">
+                          <div className="p-2 bg-(--info-soft) rounded-lg">
                             <MapPin className="w-5 h-5 text-blue-600" />
                           </div>
                           <div>
@@ -336,20 +336,20 @@ export default function Orders() {
                             <div key={step.key} className="relative flex items-start gap-4 pb-4 last:pb-0">
                               {/* Connecting line */}
                               {idx < steps.length - 1 && (
-                                <div className={`absolute left-0 top-6 w-0.5 h-full ${reached ? colors.line : 'bg-[#E5DCCF]'}`} />
+                                <div className={`absolute left-0 top-6 w-0.5 h-full ${reached ? colors.line : 'bg-(--line)'}`} />
                               )}
                               {/* Dot */}
                               <div className={`relative z-10 w-6 h-6 rounded-full flex items-center justify-center shrink-0 ring-4 ${
-                                reached ? `${colors.dot} ring-white text-white` : 'bg-white border-2 border-[#E5DCCF] text-[#8E9687]'
+                                reached ? `${colors.dot} ring-white text-white` : 'bg-(--card) border-2 border-(--line) text-(--faint)'
                               }`}>
                                 {step.icon}
                               </div>
                               {/* Label */}
                               <div className="pt-0.5">
-                                <p className={`text-sm font-semibold ${reached ? 'text-[#232921]' : 'text-[#8E9687]'}`}>
+                                <p className={`text-sm font-semibold ${reached ? 'text-(--ink)' : 'text-(--faint)'}`}>
                                   {step.label}
                                 </p>
-                                <p className="text-xs text-[#8E9687]">
+                                <p className="text-xs text-(--faint)">
                                   {isCurrent
                                     ? (idx === 0 ? t('timeline.now') : t('timeline.currentStep'))
                                     : reached
@@ -367,11 +367,11 @@ export default function Orders() {
                 })()}
 
                 {/* Role-based actions */}
-                <div className="mt-4 pt-4 border-t border-[#E5DCCF] flex flex-wrap justify-between items-center gap-2">
+                <div className="mt-4 pt-4 border-t border-(--line) flex flex-wrap justify-between items-center gap-2">
                   {/* Track Order Button - always visible */}
                   <button
                     onClick={() => navigate(`/order-tracking?orderId=${order.id}`)}
-                    className="px-4 py-2 bg-white text-[#2D5A38] border border-[#2D5A38] rounded-xl text-xs font-semibold hover:bg-[#E8F0E9] transition-colors cursor-pointer flex items-center gap-2"
+                    className="px-4 py-2 bg-(--card) text-(--leaf) border border-(--leaf) rounded-xl text-xs font-semibold hover:bg-(--moss) transition-colors cursor-pointer flex items-center gap-2"
                   >
                     <MapPin className="w-3.5 h-3.5" />
                     {t('orders.trackOrder')} {order.route && t('orders.viewRoute')}
@@ -384,7 +384,7 @@ export default function Orders() {
                         <button
                           onClick={() => handleStatusChange(order.id, 'confirmed')}
                           disabled={updating}
-                          className="px-4 py-2 bg-[#2D5A38] text-white rounded-xl text-xs font-semibold hover:bg-[#1E3D27] transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-2"
+                          className="px-4 py-2 bg-(--leaf) text-white rounded-xl text-xs font-semibold hover:bg-(--leaf-deep) transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-2"
                         >
 {updating && updatingFor === order.id ? (
                             <>
@@ -398,7 +398,7 @@ export default function Orders() {
                         <button
                           onClick={() => handleStatusChange(order.id, 'shipped')}
                           disabled={updating}
-                          className="px-4 py-2 bg-[#2D5A38] text-white rounded-xl text-xs font-semibold hover:bg-[#1E3D27] transition-colors disabled:opacity-50 cursor-pointer"
+                          className="px-4 py-2 bg-(--leaf) text-white rounded-xl text-xs font-semibold hover:bg-(--leaf-deep) transition-colors disabled:opacity-50 cursor-pointer"
                         >
                           {t('orders.markShipped')}
                         </button>
@@ -416,7 +416,7 @@ export default function Orders() {
                         <button
                           onClick={() => handleStatusChange(order.id, 'cancelled')}
                           disabled={updating}
-                          className="px-4 py-2 bg-white text-[#991B1B] border border-red-200 rounded-xl text-xs font-semibold hover:bg-red-50 transition-colors disabled:opacity-50 cursor-pointer"
+                          className="px-4 py-2 bg-(--card) text-(--danger) border border-(--danger-soft) rounded-xl text-xs font-semibold hover:bg-(--danger-soft) transition-colors disabled:opacity-50 cursor-pointer"
                         >
                           {t('orders.cancelOrder')}
                         </button>

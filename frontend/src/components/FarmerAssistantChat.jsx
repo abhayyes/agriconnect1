@@ -502,7 +502,7 @@ function renderRich(reply) {
       idx % 2 === 1 ? <strong key={idx}>{part}</strong> : part
     );
     return (
-      <p key={i} className="text-sm leading-relaxed text-[#3A4036] first:mt-0">
+      <p key={i} className="text-sm leading-relaxed text-(--ink-soft) first:mt-0">
         {node}
       </p>
     );
@@ -611,7 +611,7 @@ export default function FarmerAssistantChat() {
               initial={{ opacity: 0, x: 8 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 8 }}
-              className="hidden sm:inline text-xs font-semibold text-[#232921] bg-white border border-[#E5DCCF] px-3 py-1.5 rounded-full shadow-sm"
+              className="hidden sm:inline text-xs font-semibold text-(--ink) bg-(--card) border border-(--line) px-3 py-1.5 rounded-full shadow-sm"
             >
               {language === 'hi' ? 'किसान सहायक से पूछें' : 'Ask Kisan Assistant'}
             </motion.span>
@@ -620,7 +620,7 @@ export default function FarmerAssistantChat() {
         <motion.div
           whileTap={{ scale: 0.92 }}
           className={`w-14 h-14 rounded-full flex items-center justify-center text-white shadow-lg transition-colors cursor-pointer ${
-            open ? 'bg-[#991B1B]' : 'bg-[#2D5A38] hover:bg-[#1E3D27]'
+            open ? 'bg-(--danger)' : 'bg-(--leaf) hover:bg-(--leaf-deep)'
           }`}
         >
           {open ? <X className="w-6 h-6" /> : <MessageCircle className="w-6 h-6" />}
@@ -638,28 +638,28 @@ export default function FarmerAssistantChat() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 24, scale: 0.96 }}
             transition={{ duration: 0.2 }}
-            className="fixed bottom-5 right-5 z-[70] w-[380px] max-w-[calc(100vw-1.5rem)] h-[540px] max-h-[calc(100vh-5rem)] bg-white rounded-2xl border border-[#E5DCCF] shadow-2xl flex flex-col overflow-hidden"
+            className="fixed bottom-5 right-5 z-[70] w-[380px] max-w-[calc(100vw-1.5rem)] h-[540px] max-h-[calc(100vh-5rem)] bg-(--card) rounded-2xl border border-(--line) shadow-2xl flex flex-col overflow-hidden"
           >
             {/* Header */}
-            <div className="bg-[#2D5A38] text-[#FAF7F2] px-4 py-3 flex items-center gap-3">
+            <div className="bg-(--leaf) text-(--canvas) px-4 py-3 flex items-center gap-3">
               <div className="relative">
                 <div className="w-10 h-10 rounded-full bg-white/15 flex items-center justify-center">
                   <Sprout className="w-5 h-5" />
                 </div>
-                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-[#2D5A38]" />
+                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-(--leaf)" />
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-1.5 font-bold text-sm font-heading">
                   {language === 'hi' ? 'किसान सहायक' : 'Kisan Assistant'}
                   <Sparkles className="w-3.5 h-3.5 text-emerald-300" />
                 </div>
-                <div className="text-[11px] text-[#C2D6C6]">
+                <div className="text-[11px] text-(--line-strong)">
                   {language === 'hi' ? 'किसान प्रश्न · तुरंत उत्तर' : 'Farmer queries · answered instantly'}
                 </div>
               </div>
               <button
                 onClick={() => setOpen(false)}
-                className="p-1.5 rounded-lg text-[#C2D6C6] hover:text-white hover:bg-white/10 transition-colors"
+                className="p-1.5 rounded-lg text-(--line-strong) hover:text-white hover:bg-white/10 transition-colors"
                 aria-label={language === 'hi' ? 'बंद करें' : 'Close'}
               >
                 <X className="w-4 h-4" />
@@ -667,18 +667,18 @@ export default function FarmerAssistantChat() {
             </div>
 
             {/* Messages */}
-            <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#FAF7F2]">
+            <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 bg-(--canvas)">
               {messages.map((m, idx) => (
                 <div key={idx} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div
                     className={
                       m.role === 'user'
-                        ? 'max-w-[85%] px-3.5 py-2.5 rounded-2xl rounded-br-sm bg-[#2D5A38] text-white text-sm shadow-sm'
-                        : 'max-w-[92%] px-3.5 py-2.5 rounded-2xl rounded-bl-sm bg-white border border-[#E5DCCF] shadow-sm'
+                        ? 'max-w-[85%] px-3.5 py-2.5 rounded-2xl rounded-br-sm bg-(--leaf) text-white text-sm shadow-sm'
+                        : 'max-w-[92%] px-3.5 py-2.5 rounded-2xl rounded-bl-sm bg-(--card) border border-(--line) shadow-sm'
                     }
                   >
                     {m.role === 'assistant' && (
-                      <div className="flex items-center gap-1.5 mb-1.5 text-[#2D5A38]">
+                      <div className="flex items-center gap-1.5 mb-1.5 text-(--leaf)">
                         <Bot className="w-3.5 h-3.5" />
                         <span className="text-[10px] font-bold uppercase tracking-wide">
                           {language === 'hi' ? 'किसान सहायक' : 'Kisan Assistant'}
@@ -694,7 +694,7 @@ export default function FarmerAssistantChat() {
                           <button
                             key={i}
                             onClick={() => { setOpen(false); navigate(l.path); }}
-                            className="flex items-center gap-1 w-full px-2.5 py-1.5 rounded-lg text-xs font-semibold text-[#2D5A38] bg-[#E8F0E9] border border-[#C2D6C6] hover:bg-[#dce9df] transition-colors cursor-pointer"
+                            className="flex items-center gap-1 w-full px-2.5 py-1.5 rounded-lg text-xs font-semibold text-(--leaf) bg-(--moss) border border-(--line-strong) hover:bg-(--moss-strong) transition-colors cursor-pointer"
                           >
                             {resolveLinkLabel(l.label, language)}
                             <ChevronRight className="w-3.5 h-3.5" />
@@ -707,23 +707,23 @@ export default function FarmerAssistantChat() {
               ))}
               {typing && (
                 <div className="flex justify-start">
-                  <div className="px-4 py-3 rounded-2xl rounded-bl-sm bg-white border border-[#E5DCCF] shadow-sm flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#C2D6C6] animate-bounce" />
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#C2D6C6] animate-bounce [animation-delay:120ms]" />
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#C2D6C6] animate-bounce [animation-delay:240ms]" />
+                  <div className="px-4 py-3 rounded-2xl rounded-bl-sm bg-(--card) border border-(--line) shadow-sm flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-(--line-strong) animate-bounce" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-(--line-strong) animate-bounce [animation-delay:120ms]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-(--line-strong) animate-bounce [animation-delay:240ms]" />
                   </div>
                 </div>
               )}
             </div>
 
             {/* Quick tips */}
-            <div className="px-3 pt-2 pb-1 bg-[#FAF7F2] border-t border-[#E5DCCF]">
+            <div className="px-3 pt-2 pb-1 bg-(--canvas) border-t border-(--line)">
               <div className="flex flex-wrap gap-1.5">
                 {(QUICK_TIPS[language] || QUICK_TIPS.en).map((tip) => (
                   <button
                     key={tip}
                     onClick={() => send(tip)}
-                    className="px-2.5 py-1 rounded-full text-[11px] font-medium text-[#2D5A38] bg-[#E8F0E9] border border-[#C2D6C6] hover:bg-[#dce9df] transition-colors cursor-pointer"
+                    className="px-2.5 py-1 rounded-full text-[11px] font-medium text-(--leaf) bg-(--moss) border border-(--line-strong) hover:bg-(--moss-strong) transition-colors cursor-pointer"
                   >
                     {tip}
                   </button>
@@ -732,19 +732,19 @@ export default function FarmerAssistantChat() {
             </div>
 
             {/* Input */}
-            <div className="p-3 bg-white border-t border-[#E5DCCF] flex items-center gap-2">
+            <div className="p-3 bg-(--card) border-t border-(--line) flex items-center gap-2">
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') send(input); }}
                 placeholder={language === 'hi' ? 'मंडी, योजनाएँ, कीट… के बारे में पूछें' : 'Ask about mandi, schemes, pests…'}
-                className="flex-1 px-3 py-2.5 rounded-xl bg-[#FAF7F2] border border-[#E5DCCF] text-sm text-[#232921] placeholder-[#8E9687] focus:outline-none focus:border-[#2D5A38] focus:bg-white transition-colors"
+                className="flex-1 px-3 py-2.5 rounded-xl bg-(--canvas) border border-(--line) text-sm text-(--ink) placeholder-(--faint) focus:outline-none focus:border-(--leaf) focus:bg-(--card) transition-colors"
               />
               <button
                 onClick={() => send(input)}
                 disabled={!input.trim()}
-                className="p-2.5 rounded-xl bg-[#2D5A38] hover:bg-[#1E3D27] text-white disabled:opacity-40 transition-colors cursor-pointer shrink-0"
+                className="p-2.5 rounded-xl bg-(--leaf) hover:bg-(--leaf-deep) text-white disabled:opacity-40 transition-colors cursor-pointer shrink-0"
                 aria-label={language === 'hi' ? 'भेजें' : 'Send'}
               >
                 <Send className="w-4 h-4" />

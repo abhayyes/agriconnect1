@@ -8,7 +8,9 @@ import Tracking from './pages/OrderTracking';
 import Orders from './pages/Orders';
 import { api } from './services/api';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
+import { ThemeProvider } from './context/ThemeContext';
 import LanguageToggle from './components/LanguageToggle';
+import ThemeToggle from './components/ThemeToggle';
 import FarmerAssistantChat from './components/FarmerAssistantChat';
 
 // Simple lightweight AuthContext for authentic session state
@@ -27,31 +29,31 @@ function Navbar() {
   const isBuyer = user?.role === 'consumer' || user?.role === 'bulk_buyer';
 
   return (
-    <header className="sticky top-0 z-40 bg-[#FAF7F2]/90 backdrop-blur-md border-b border-[#E5DCCF]">
+    <header className="sticky top-0 z-40 bg-(--canvas)/90 backdrop-blur-md border-b border-(--line)">
       <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Brand Logo */}
             <NavLink to="/" className="flex items-center gap-3 group">
-              <div className="w-10 h-10 rounded-xl bg-[#2D5A38] text-[#FAF7F2] flex items-center justify-center shadow-sm group-hover:bg-[#1E3D27] transition-colors">
+              <div className="w-10 h-10 rounded-xl bg-(--leaf) text-(--canvas) flex items-center justify-center shadow-sm group-hover:bg-(--leaf-deep) transition-colors">
                 <Sprout className="w-6 h-6" />
               </div>
               <div>
-                <div className="flex items-center gap-2 font-bold text-lg tracking-tight text-[#232921] font-heading">
-                  Agri<span className="text-[#2D5A38]">Connect</span>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-[#E8F0E9] text-[#2D5A38] border border-[#C2D6C6]">
+                <div className="flex items-center gap-2 font-bold text-lg tracking-tight text-(--ink) font-heading">
+                  Agri<span className="text-(--leaf)">Connect</span>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-(--moss) text-(--leaf) border border-(--line-strong)">
                     SIH 26033
                   </span>
                   {backendStatus?.status === 'ok' && (
                     <span
                       title="Connected to Backend"
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#E8F0E9] text-[#2D5A38] border border-[#C2D6C6]"
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-(--moss) text-(--leaf) border border-(--line-strong)"
                     >
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#2D5A38] animate-pulse" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-(--leaf) animate-pulse" />
                       API Live
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-[#6B7264] hidden sm:block">{t('nav.tagline')}</p>
+                <p className="text-[11px] text-(--muted) hidden sm:block">{t('nav.tagline')}</p>
               </div>
             </NavLink>
 
@@ -60,7 +62,7 @@ function Navbar() {
             {/* Language Toggle */}
             <LanguageToggle />
 
-            <div className="h-4 w-px bg-[#E5DCCF] mx-1 hidden sm:block" />
+            <div className="h-4 w-px bg-(--line) mx-1 hidden sm:block" />
 
             {isBuyer && (
               <NavLink
@@ -68,8 +70,8 @@ function Navbar() {
                 className={({ isActive }) =>
                   `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                     isActive
-                      ? 'bg-[#E8F0E9] text-[#2D5A38] font-semibold shadow-xs'
-                      : 'text-[#6B7264] hover:text-[#232921] hover:bg-[#F2ECE1]'
+                      ? 'bg-(--moss) text-(--leaf) font-semibold shadow-xs'
+                      : 'text-(--muted) hover:text-(--ink) hover:bg-(--subtle)'
                   }`
                 }
               >
@@ -84,8 +86,8 @@ function Navbar() {
                 className={({ isActive }) =>
                   `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                     isActive
-                      ? 'bg-[#E8F0E9] text-[#2D5A38] font-semibold shadow-xs'
-                      : 'text-[#6B7264] hover:text-[#232921] hover:bg-[#F2ECE1]'
+                      ? 'bg-(--moss) text-(--leaf) font-semibold shadow-xs'
+                      : 'text-(--muted) hover:text-(--ink) hover:bg-(--subtle)'
                   }`
                 }
               >
@@ -99,8 +101,8 @@ function Navbar() {
               className={({ isActive }) =>
                 `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                   isActive
-                    ? 'bg-[#E8F0E9] text-[#2D5A38] font-semibold shadow-xs'
-                    : 'text-[#6B7264] hover:text-[#232921] hover:bg-[#F2ECE1]'
+                    ? 'bg-(--moss) text-(--leaf) font-semibold shadow-xs'
+                    : 'text-(--muted) hover:text-(--ink) hover:bg-(--subtle)'
                 }`
               }
             >
@@ -113,8 +115,8 @@ function Navbar() {
               className={({ isActive }) =>
                 `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                   isActive
-                    ? 'bg-[#E8F0E9] text-[#2D5A38] font-semibold shadow-xs'
-                    : 'text-[#6B7264] hover:text-[#232921] hover:bg-[#F2ECE1]'
+                    ? 'bg-(--moss) text-(--leaf) font-semibold shadow-xs'
+                    : 'text-(--muted) hover:text-(--ink) hover:bg-(--subtle)'
                 }`
               }
             >
@@ -122,21 +124,21 @@ function Navbar() {
               <span>{t('nav.tracking')}</span>
             </NavLink>
 
-            <div className="h-4 w-px bg-[#E5DCCF] mx-1 hidden sm:block" />
+            <div className="h-4 w-px bg-(--line) mx-1 hidden sm:block" />
 
             {/* Auth Profile / Switch role */}
             {user ? (
               <div className="flex items-center gap-2">
                 <div className="hidden md:flex flex-col text-right">
-                  <span className="text-xs font-semibold text-[#232921] leading-tight">{user.name}</span>
-                  <span className="text-[10px] text-[#6B7264] font-mono capitalize">
+                  <span className="text-xs font-semibold text-(--ink) leading-tight">{user.name}</span>
+                  <span className="text-[10px] text-(--muted) font-mono capitalize">
                     {isFarmer ? t('nav.role.farmer') : t('nav.role.buyer')}
                   </span>
                 </div>
                 <button
                   onClick={logout}
                   title={t('nav.logout')}
-                  className="p-2 rounded-lg text-[#6B7264] hover:text-[#991B1B] hover:bg-[#FEE2E2] transition-colors"
+                  className="p-2 rounded-lg text-(--muted) hover:text-(--danger) hover:bg-(--danger-soft) transition-colors"
                 >
                   <LogOut className="w-4 h-4" />
                 </button>
@@ -144,7 +146,7 @@ function Navbar() {
             ) : (
               <NavLink
                 to="/login"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#2D5A38] text-white hover:bg-[#1E3D27] text-xs font-semibold transition-colors shadow-xs"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-(--leaf) text-white hover:bg-(--leaf-deep) text-xs font-semibold transition-colors shadow-xs"
               >
                 <span>{t('nav.login')}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -187,13 +189,15 @@ export default function App() {
   };
 
   return (
-    <LanguageProvider>
-      <AuthContext.Provider value={{ user, loginUser, logout, backendStatus }}>
-        <BrowserRouter>
-          <AppContent user={user} />
-        </BrowserRouter>
-      </AuthContext.Provider>
-    </LanguageProvider>
+    <ThemeProvider>
+      <LanguageProvider>
+        <AuthContext.Provider value={{ user, loginUser, logout, backendStatus }}>
+          <BrowserRouter>
+            <AppContent user={user} />
+          </BrowserRouter>
+        </AuthContext.Provider>
+      </LanguageProvider>
+    </ThemeProvider>
   );
 }
 
@@ -201,7 +205,7 @@ function AppContent({ user }) {
   const { t } = useLanguage();
 
   return (
-    <div className="min-h-screen bg-[#FAF7F2] text-[#232921] flex flex-col selection:bg-[#2D5A38] selection:text-[#FAF7F2]">
+    <div className="min-h-screen bg-(--canvas) text-(--ink) flex flex-col selection:bg-(--leaf) selection:text-(--canvas)">
       <Navbar />
 
       <main className="flex-1 container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
@@ -222,21 +226,22 @@ function AppContent({ user }) {
         </Routes>
       </main>
 
-      <footer className="border-t border-[#E5DCCF] bg-[#F2ECE1] text-[#6B7264] py-6 text-xs mt-12">
+      <footer className="border-t border-(--line) bg-(--subtle) text-(--muted) py-6 text-xs mt-12">
         <div className="container mx-auto max-w-7xl px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2 font-medium">
-            <ShieldCheck className="w-4 h-4 text-[#2D5A38]" />
+            <ShieldCheck className="w-4 h-4 text-(--leaf)" />
             <span>{t('footer.tagline')}</span>
           </div>
-          <div className="flex items-center gap-4 text-[#6B7264]">
+          <div className="flex items-center gap-4 text-(--muted)">
             <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-[#2D5A38]" />
+              <span className="w-2 h-2 rounded-full bg-(--leaf)" />
               {t('footer.directTrade')}
             </span>
             <span>{t('footer.zeroMiddlemen')}</span>
           </div>
         </div>
       </footer>
+      <ThemeToggle />
       <FarmerAssistantChat />
     </div>
   );

@@ -36,7 +36,7 @@ export default function RouteMap({ pickup, delivery, polyline, height = 220 }) {
 
   return (
     <div
-      className="rounded-xl overflow-hidden border border-[#E5DCCF]"
+      className="rounded-xl overflow-hidden border border-(--line)"
       style={{ height }}
     >
       <MapContainer

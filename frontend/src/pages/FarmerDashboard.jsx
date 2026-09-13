@@ -208,16 +208,16 @@ export default function FarmerDashboard() {
   return (
     <div className="py-2 space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-[#E5DCCF] shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-(--card) p-6 rounded-2xl border border-(--line) shadow-xs">
         <div>
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-[#2D5A38] mb-1">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-(--leaf) mb-1">
             <Wheat className="w-4 h-4" />
             <span>{t('farmer.banner.tagline')}</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#232921] font-heading">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-(--ink) font-heading">
             {t('farmer.banner.title')}
           </h1>
-          <p className="text-xs sm:text-sm text-[#6B7264] mt-1">
+          <p className="text-xs sm:text-sm text-(--muted) mt-1">
             {t('farmer.banner.desc')}
           </p>
         </div>
@@ -225,7 +225,7 @@ export default function FarmerDashboard() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-1.5 px-4 py-2.5 bg-[#2D5A38] hover:bg-[#1E3D27] text-white font-semibold rounded-xl text-xs shadow-xs active:scale-95 transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-4 py-2.5 bg-(--leaf) hover:bg-(--leaf-deep) text-white font-semibold rounded-xl text-xs shadow-xs active:scale-95 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>{t('farmer.button.listNewCrop')}</span>
@@ -243,23 +243,23 @@ export default function FarmerDashboard() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.25, delay: idx * 0.05 }}
-              className="bg-white p-5 rounded-2xl border border-[#E5DCCF] shadow-xs flex flex-col justify-between"
+              className="bg-(--card) p-5 rounded-2xl border border-(--line) shadow-xs flex flex-col justify-between"
             >
               <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-semibold text-[#6B7264] uppercase tracking-wide">{stat.title}</span>
-                <div className="p-2 rounded-lg bg-[#E8F0E9] text-[#2D5A38]">
+                <span className="text-xs font-semibold text-(--muted) uppercase tracking-wide">{stat.title}</span>
+                <div className="p-2 rounded-lg bg-(--moss) text-(--leaf)">
                   <Icon className="w-4 h-4" />
                 </div>
               </div>
 
               <div>
-                <div className="text-2xl sm:text-3xl font-bold text-[#232921] font-heading">{stat.value}</div>
+                <div className="text-2xl sm:text-3xl font-bold text-(--ink) font-heading">{stat.value}</div>
                 <div className="flex items-center gap-2 mt-2 text-xs">
-                  <span className="flex items-center gap-0.5 text-[#2D5A38] font-bold">
+                  <span className="flex items-center gap-0.5 text-(--leaf) font-bold">
                     <ArrowUpRight className="w-3.5 h-3.5" />
                     {stat.change}
                   </span>
-                  <span className="text-[#8E9687]">({stat.description})</span>
+                  <span className="text-(--faint)">({stat.description})</span>
                 </div>
               </div>
             </motion.div>
@@ -272,57 +272,57 @@ export default function FarmerDashboard() {
         {/* Inventory Column */}
         <div className="lg:col-span-2 space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-[#232921] font-heading flex items-center gap-2">
-              <Package className="w-4 h-4 text-[#2D5A38]" />
+            <h2 className="text-base font-bold text-(--ink) font-heading flex items-center gap-2">
+              <Package className="w-4 h-4 text-(--leaf)" />
               {t('farmer.inventory.heading')}
             </h2>
-            <span className="text-xs text-[#6B7264] font-medium">{inventoryItems.length} {t('farmer.inventory.registeredLots')}</span>
+            <span className="text-xs text-(--muted) font-medium">{inventoryItems.length} {t('farmer.inventory.registeredLots')}</span>
           </div>
 
-          <div className="bg-white rounded-2xl border border-[#E5DCCF] overflow-hidden shadow-xs">
+          <div className="bg-(--card) rounded-2xl border border-(--line) overflow-hidden shadow-xs">
             {inventoryItems.length === 0 ? (
               <div className="p-10 text-center">
-                <Package className="w-12 h-12 text-[#E5DCCF] mx-auto mb-3" />
-                <h3 className="text-sm font-bold text-[#232921] mb-1">{t('farmer.inventory.emptyTitle')}</h3>
-                <p className="text-xs text-[#6B7264] mb-4 max-w-sm mx-auto">
+                <Package className="w-12 h-12 text-(--line) mx-auto mb-3" />
+                <h3 className="text-sm font-bold text-(--ink) mb-1">{t('farmer.inventory.emptyTitle')}</h3>
+                <p className="text-xs text-(--muted) mb-4 max-w-sm mx-auto">
                   {t('farmer.inventory.emptyDesc')}
                 </p>
                 <button
                   onClick={() => setShowModal(true)}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#2D5A38] hover:bg-[#1E3D27] text-white font-semibold rounded-xl text-xs shadow-xs transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-(--leaf) hover:bg-(--leaf-deep) text-white font-semibold rounded-xl text-xs shadow-xs transition-colors cursor-pointer"
                 >
                   <Plus className="w-4 h-4" />
                   <span>{t('farmer.button.listFirstCrop')}</span>
                 </button>
               </div>
             ) : (
-            <div className="divide-y divide-[#E5DCCF]">
+            <div className="divide-y divide-(--line)">
               {inventoryItems.map((item) => (
-                <div key={item.id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-[#FAF7F2] transition-colors">
+                <div key={item.id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-(--canvas) transition-colors">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-sm text-[#232921] font-heading">{item.name}</span>
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-[#F2ECE1] text-[#6B7264] border border-[#E5DCCF]">
+                      <span className="font-bold text-sm text-(--ink) font-heading">{item.name}</span>
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-(--subtle) text-(--muted) border border-(--line)">
                         {item.grade}
                       </span>
                     </div>
-                    <div className="text-xs text-[#6B7264] flex items-center gap-3">
-                      <span>{t('farmer.inventory.available')} <strong className="text-[#232921]">{item.stock}</strong></span>
+                    <div className="text-xs text-(--muted) flex items-center gap-3">
+                      <span>{t('farmer.inventory.available')} <strong className="text-(--ink)">{item.stock}</strong></span>
                       <span>•</span>
-                      <span>{t('farmer.inventory.mandiDemand')} <strong className="text-[#2D5A38]">{item.demand}</strong></span>
+                      <span>{t('farmer.inventory.mandiDemand')} <strong className="text-(--leaf)">{item.demand}</strong></span>
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between sm:justify-end gap-4">
                     <div className="text-left sm:text-right">
-                      <div className="text-base font-bold font-mono text-[#2D5A38]">{item.price}</div>
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#6B7264]">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-[#2D5A38]" /> {item.status}
+                      <div className="text-base font-bold font-mono text-(--leaf)">{item.price}</div>
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-(--muted)">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-(--leaf)" /> {item.status}
                       </span>
                     </div>
                     <button
                       onClick={() => handleOpenAdjust(item)}
-                      className="px-3 py-1.5 rounded-lg bg-[#FAF7F2] hover:bg-[#F2ECE1] text-[#232921] border border-[#E5DCCF] text-xs font-semibold transition-colors cursor-pointer"
+                      className="px-3 py-1.5 rounded-lg bg-(--canvas) hover:bg-(--subtle) text-(--ink) border border-(--line) text-xs font-semibold transition-colors cursor-pointer"
                     >
                       {t('farmer.button.adjust')}
                     </button>
@@ -337,39 +337,39 @@ export default function FarmerDashboard() {
         {/* Mandi Price Trend & Intelligence Widget */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-[#232921] font-heading flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-[#8C6D46]" />
+            <h2 className="text-base font-bold text-(--ink) font-heading flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-(--earth)" />
               {t('farmer.intelligence.title')}
             </h2>
           </div>
 
-          <div className="bg-white rounded-2xl border border-[#E5DCCF] p-5 space-y-4 shadow-xs">
+          <div className="bg-(--card) rounded-2xl border border-(--line) p-5 space-y-4 shadow-xs">
             {barChartData.length === 0 ? (
               <div className="text-center py-8">
-                <TrendingUp className="w-10 h-10 text-[#E5DCCF] mx-auto mb-3" />
-                <p className="text-sm font-semibold text-[#232921] mb-1">{t('farmer.intelligence.noDataTitle')}</p>
-                <p className="text-xs text-[#6B7264]">
+                <TrendingUp className="w-10 h-10 text-(--line) mx-auto mb-3" />
+                <p className="text-sm font-semibold text-(--ink) mb-1">{t('farmer.intelligence.noDataTitle')}</p>
+                <p className="text-xs text-(--muted)">
                   {t('farmer.intelligence.noDataDesc')}
                 </p>
               </div>
             ) : (
               <>
                 {/* Advisory note — derived from real order data */}
-                <div className="p-3.5 rounded-xl bg-[#FAF7F2] border border-[#E5DCCF]">
-                  <div className="flex items-center gap-1.5 text-[#8C6D46] text-xs font-bold mb-1">
+                <div className="p-3.5 rounded-xl bg-(--canvas) border border-(--line)">
+                  <div className="flex items-center gap-1.5 text-(--earth) text-xs font-bold mb-1">
                     <TrendingUp className="w-3.5 h-3.5" />
                     {t('farmer.intelligence.orderSummary')}
                   </div>
-                  <p className="text-xs text-[#6B7264] leading-relaxed">
+                  <p className="text-xs text-(--muted) leading-relaxed">
                     {t('farmer.summary.youHave')}{' '}
-                    <strong className="text-[#2D5A38]">
+                    <strong className="text-(--leaf)">
                       {orders.length} {orders.length !== 1 ? t('common.orders') : t('common.order')}
                     </strong>{' '}
                     {t('farmer.summary.total')}
                     {deliveredOrders.length > 0 ? (
                       <>
                         {t('farmer.summary.with')}{' '}
-                        <strong className="text-[#2D5A38]">{deliveredOrders.length} {t('farmer.summary.delivered')}</strong>{' '}
+                        <strong className="text-(--leaf)">{deliveredOrders.length} {t('farmer.summary.delivered')}</strong>{' '}
                         {t('farmer.summary.and')} ₹
                         {totalRevenue.toLocaleString('en-IN')} {t('farmer.summary.earned')}
                       </>
@@ -381,17 +381,17 @@ export default function FarmerDashboard() {
 
                 {/* Visual Bar Chart */}
                 <div>
-                  <div className="flex items-center justify-between text-xs text-[#6B7264] font-medium mb-2">
+                  <div className="flex items-center justify-between text-xs text-(--muted) font-medium mb-2">
                     <span>{t('farmer.intelligence.recentOrderValues')}</span>
-                    <span className="text-[#2D5A38] font-bold">
+                    <span className="text-(--leaf) font-bold">
                       {deliveredOrders.length > 0 ? `${deliveredOrders.length} ${t('farmer.intelligence.completedCount')}` : `${orders.length} ${t('farmer.intelligence.inProgressCount')}`}
                     </span>
                   </div>
 
-                  <div className="h-36 bg-[#FAF7F2] rounded-xl border border-[#E5DCCF] p-3 pt-5 flex items-end justify-between gap-1.5">
+                  <div className="h-36 bg-(--canvas) rounded-xl border border-(--line) p-3 pt-5 flex items-end justify-between gap-1.5">
                     {barChartData.map((bar, i) => (
                       <div key={i} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end group">
-                        <div className="text-[9px] font-mono text-[#8E9687] group-hover:text-[#232921] transition-colors">
+                        <div className="text-[9px] font-mono text-(--faint) group-hover:text-(--ink) transition-colors">
                           ₹{bar.val}
                         </div>
                         <motion.div
@@ -400,11 +400,11 @@ export default function FarmerDashboard() {
                           transition={{ duration: 0.5, delay: i * 0.05 }}
                           className={`w-full rounded-t-md transition-all ${
                             i === barChartData.length - 1
-                              ? 'bg-[#2D5A38]'
-                              : 'bg-[#C2D6C6] group-hover:bg-[#2D5A38]'
+                              ? 'bg-(--leaf)'
+                              : 'bg-(--line-strong) group-hover:bg-(--leaf)'
                           }`}
                         />
-                        <span className="text-[10px] text-[#6B7264] font-medium">{bar.day.slice(0, 3)}</span>
+                        <span className="text-[10px] text-(--muted) font-medium">{bar.day.slice(0, 3)}</span>
                       </div>
                     ))}
                   </div>
@@ -418,68 +418,68 @@ export default function FarmerDashboard() {
       {/* Modal for List Harvest */}
       <AnimatePresence>
         {showModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#232921]/60 backdrop-blur-xs">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-(--ink)/60 backdrop-blur-xs">
             <motion.div
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96 }}
               transition={{ duration: 0.2 }}
-              className="bg-white border border-[#E5DCCF] rounded-2xl p-6 w-full max-w-md shadow-lg relative"
+              className="bg-(--card) border border-(--line) rounded-2xl p-6 w-full max-w-md shadow-lg relative"
             >
               <button
                 onClick={() => setShowModal(false)}
-                className="absolute top-4 right-4 p-1 text-[#8E9687] hover:text-[#232921] rounded-lg hover:bg-[#FAF7F2]"
+                className="absolute top-4 right-4 p-1 text-(--faint) hover:text-(--ink) rounded-lg hover:bg-(--canvas)"
               >
                 <X className="w-5 h-5" />
               </button>
 
-              <h3 className="text-lg font-bold text-[#232921] font-heading mb-1">{t('farmer.modal.addCropTitle')}</h3>
-              <p className="text-xs text-[#6B7264] mb-4">{t('farmer.modal.addCropDesc')}</p>
+              <h3 className="text-lg font-bold text-(--ink) font-heading mb-1">{t('farmer.modal.addCropTitle')}</h3>
+              <p className="text-xs text-(--muted) mb-4">{t('farmer.modal.addCropDesc')}</p>
 
               <form onSubmit={handleAddCrop} className="space-y-3.5">
                 <div>
-                  <label className="block text-xs font-medium text-[#232921] mb-1">{t('farmer.modal.cropName')}</label>
+                  <label className="block text-xs font-medium text-(--ink) mb-1">{t('farmer.modal.cropName')}</label>
                   <input
                     type="text"
                     required
                     placeholder={t('farmer.modal.cropNamePlaceholder')}
                     value={newCrop.name}
                     onChange={(e) => setNewCrop({ ...newCrop, name: e.target.value })}
-                    className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E5DCCF] rounded-xl text-xs text-[#232921] focus:outline-none focus:border-[#2D5A38] focus:bg-white"
+                    className="w-full px-3 py-2 bg-(--canvas) border border-(--line) rounded-xl text-xs text-(--ink) focus:outline-none focus:border-(--leaf) focus:bg-(--card)"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-[#232921] mb-1">{t('farmer.modal.stockQuantity')}</label>
+                    <label className="block text-xs font-medium text-(--ink) mb-1">{t('farmer.modal.stockQuantity')}</label>
                     <input
                       type="number"
                       required
                       placeholder={t('farmer.modal.stockPlaceholder')}
                       value={newCrop.stock}
                       onChange={(e) => setNewCrop({ ...newCrop, stock: e.target.value })}
-                      className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E5DCCF] rounded-xl text-xs text-[#232921] focus:outline-none focus:border-[#2D5A38] focus:bg-white"
+                      className="w-full px-3 py-2 bg-(--canvas) border border-(--line) rounded-xl text-xs text-(--ink) focus:outline-none focus:border-(--leaf) focus:bg-(--card)"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-[#232921] mb-1">{t('farmer.modal.pricePerKg')}</label>
+                    <label className="block text-xs font-medium text-(--ink) mb-1">{t('farmer.modal.pricePerKg')}</label>
                     <input
                       type="number"
                       required
                       placeholder={t('farmer.modal.pricePlaceholder')}
                       value={newCrop.price}
                       onChange={(e) => setNewCrop({ ...newCrop, price: e.target.value })}
-                      className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E5DCCF] rounded-xl text-xs text-[#232921] focus:outline-none focus:border-[#2D5A38] focus:bg-white"
+                      className="w-full px-3 py-2 bg-(--canvas) border border-(--line) rounded-xl text-xs text-(--ink) focus:outline-none focus:border-(--leaf) focus:bg-(--card)"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-[#232921] mb-1">{t('farmer.modal.qualityGrade')}</label>
+                  <label className="block text-xs font-medium text-(--ink) mb-1">{t('farmer.modal.qualityGrade')}</label>
                   <select
                     value={newCrop.grade}
                     onChange={(e) => setNewCrop({ ...newCrop, grade: e.target.value })}
-                    className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E5DCCF] rounded-xl text-xs text-[#232921] focus:outline-none focus:border-[#2D5A38] focus:bg-white"
+                    className="w-full px-3 py-2 bg-(--canvas) border border-(--line) rounded-xl text-xs text-(--ink) focus:outline-none focus:border-(--leaf) focus:bg-(--card)"
                   >
                     <option value="Grade A+">{t('farmer.grade.gradeAPlus')}</option>
                     <option value="Grade A">{t('farmer.grade.gradeA')}</option>
@@ -491,13 +491,13 @@ export default function FarmerDashboard() {
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}
-                    className="px-4 py-2 rounded-xl bg-[#FAF7F2] text-[#6B7264] hover:text-[#232921] text-xs font-semibold"
+                    className="px-4 py-2 rounded-xl bg-(--canvas) text-(--muted) hover:text-(--ink) text-xs font-semibold"
                   >
                     {t('common.cancel')}
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 rounded-xl bg-[#2D5A38] hover:bg-[#1E3D27] text-white font-semibold text-xs shadow-xs cursor-pointer"
+                    className="px-4 py-2 rounded-xl bg-(--leaf) hover:bg-(--leaf-deep) text-white font-semibold text-xs shadow-xs cursor-pointer"
                   >
                     {t('farmer.button.registerCrop')}
                   </button>
@@ -511,30 +511,30 @@ export default function FarmerDashboard() {
       {/* Adjust Listing Modal */}
       <AnimatePresence>
         {showAdjustModal && adjustItem && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#232921]/60 backdrop-blur-xs">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-(--ink)/60 backdrop-blur-xs">
             <motion.div
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96 }}
               transition={{ duration: 0.2 }}
-              className="bg-white border border-[#E5DCCF] rounded-2xl p-6 w-full max-w-md shadow-lg relative"
+              className="bg-(--card) border border-(--line) rounded-2xl p-6 w-full max-w-md shadow-lg relative"
             >
               <button
                 onClick={() => { setShowAdjustModal(false); setAdjustItem(null); }}
-                className="absolute top-4 right-4 p-1 text-[#8E9687] hover:text-[#232921] rounded-lg hover:bg-[#FAF7F2]"
+                className="absolute top-4 right-4 p-1 text-(--faint) hover:text-(--ink) rounded-lg hover:bg-(--canvas)"
               >
                 <X className="w-5 h-5" />
               </button>
 
-              <h3 className="text-lg font-bold text-[#232921] font-heading mb-1">{t('farmer.modal.adjustTitle')}</h3>
-              <p className="text-xs text-[#6B7264] mb-4">
+              <h3 className="text-lg font-bold text-(--ink) font-heading mb-1">{t('farmer.modal.adjustTitle')}</h3>
+              <p className="text-xs text-(--muted) mb-4">
                 {t('farmer.modal.adjustDesc')} <strong>{adjustItem.name}</strong> ({adjustItem.grade}).
               </p>
 
               <div className="space-y-3.5">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-[#232921] mb-1">
+                    <label className="block text-xs font-medium text-(--ink) mb-1">
                       {t('farmer.modal.pricePerUnit')} {adjustItem.rawUnit})
                     </label>
                     <input
@@ -543,11 +543,11 @@ export default function FarmerDashboard() {
                       step="0.5"
                       value={adjustForm.price}
                       onChange={(e) => setAdjustForm({ ...adjustForm, price: e.target.value })}
-                      className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E5DCCF] rounded-xl text-xs text-[#232921] focus:outline-none focus:border-[#2D5A38] focus:bg-white"
+                      className="w-full px-3 py-2 bg-(--canvas) border border-(--line) rounded-xl text-xs text-(--ink) focus:outline-none focus:border-(--leaf) focus:bg-(--card)"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-[#232921] mb-1">
+                    <label className="block text-xs font-medium text-(--ink) mb-1">
                       {t('farmer.modal.stockUnit')} {adjustItem.rawUnit})
                     </label>
                     <input
@@ -556,7 +556,7 @@ export default function FarmerDashboard() {
                       step="1"
                       value={adjustForm.quantity}
                       onChange={(e) => setAdjustForm({ ...adjustForm, quantity: e.target.value })}
-                      className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E5DCCF] rounded-xl text-xs text-[#232921] focus:outline-none focus:border-[#2D5A38] focus:bg-white"
+                      className="w-full px-3 py-2 bg-(--canvas) border border-(--line) rounded-xl text-xs text-(--ink) focus:outline-none focus:border-(--leaf) focus:bg-(--card)"
                     />
                   </div>
                 </div>
@@ -565,7 +565,7 @@ export default function FarmerDashboard() {
                   <button
                     onClick={handleRemoveListing}
                     disabled={adjusting}
-                    className="px-3 py-2 rounded-xl bg-white text-[#991B1B] border border-red-200 text-xs font-semibold hover:bg-red-50 transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+                    className="px-3 py-2 rounded-xl bg-(--card) text-(--danger) border border-(--danger-soft) text-xs font-semibold hover:bg-(--danger-soft) transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                     {t('farmer.button.removeListing')}
@@ -573,14 +573,14 @@ export default function FarmerDashboard() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => { setShowAdjustModal(false); setAdjustItem(null); }}
-                      className="px-4 py-2 rounded-xl bg-[#FAF7F2] text-[#6B7264] hover:text-[#232921] text-xs font-semibold"
+                      className="px-4 py-2 rounded-xl bg-(--canvas) text-(--muted) hover:text-(--ink) text-xs font-semibold"
                     >
                       {t('common.cancel')}
                     </button>
                     <button
                       onClick={handleSaveAdjust}
                       disabled={adjusting}
-                      className="px-4 py-2 rounded-xl bg-[#2D5A38] hover:bg-[#1E3D27] text-white font-semibold text-xs shadow-xs cursor-pointer disabled:opacity-50"
+                      className="px-4 py-2 rounded-xl bg-(--leaf) hover:bg-(--leaf-deep) text-white font-semibold text-xs shadow-xs cursor-pointer disabled:opacity-50"
                     >
                       {adjusting ? t('common.saving') : t('common.saveChanges')}
                     </button>
