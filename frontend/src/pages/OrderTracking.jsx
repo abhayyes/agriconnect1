@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   MapPin,
   Truck,
@@ -17,37 +17,52 @@ import { useLanguage } from '../context/LanguageContext';
 
 export default function OrderTracking() {
   const { t } = useLanguage();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const orderId = searchParams.get('orderId');
 
   const [order, setOrder] = useState(null);
+  const [ordersList, setOrdersList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchOrder = async () => {
+    const load = async () => {
+      // Dispatch-track board: no order selected -> show every order and the
+      // route path it followed, instead of dead-ending to /orders.
       if (!orderId) {
-        setError(t('tracking.error.noOrderId'));
-        setLoading(false);
+        setOrdersList([]);
+        try {
+          const data = await api.getOrders();
+          setOrdersList(data.orders || []);
+        } catch (err) {
+          console.error('Failed to load orders for dispatch track:', err);
+        } finally {
+          setLoading(false);
+        }
         return;
       }
 
-      try {
-        const response = await api.getOrderById(orderId);
-        if (response && response.order) {
-          setOrder(response.order);
-        } else {
-          setError(t('tracking.error.notFound'));
+      const fetchOrder = async () => {
+        try {
+          const response = await api.getOrderById(orderId);
+          if (response && response.order) {
+            setOrder(response.order);
+          } else {
+            setError(t('tracking.error.notFound'));
+          }
+        } catch (err) {
+          console.error('Failed to fetch order:', err);
+          setError(t('tracking.error.loadFailed'));
+        } finally {
+          setLoading(false);
         }
-      } catch (err) {
-        console.error('Failed to fetch order:', err);
-        setError(t('tracking.error.loadFailed'));
-      } finally {
-        setLoading(false);
-      }
+      };
+
+      fetchOrder();
     };
 
-    fetchOrder();
+    load();
   }, [orderId]);
 
   // Map order status to timeline steps
@@ -112,6 +127,102 @@ export default function OrderTracking() {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-(--leaf) mx-auto mb-4"></div>
           <p className="text-(--muted)">{t('tracking.loading')}</p>
         </div>
+      </div>
+    );
+  }
+
+  // Dispatch-track board: no specific order selected -> list every order with
+  // the delivery path it followed, so the "Tracking / dispatch" page shows the
+  // routes of all placed orders instead of redirecting to /orders.
+  if (!orderId) {
+    return (
+      <div className="py-2 max-w-4xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="bg-white p-6 rounded-2xl border border-[#E5DCCF] shadow-xs">
+          <div className="flex items-center gap-2 text-[#2D5A38] mb-1">
+            <Route className="w-5 h-5" />
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#232921] font-heading">
+              Dispatch Track
+            </h1>
+          </div>
+          <p className="text-xs sm:text-sm text-[#6B7264]">
+            Every order and the delivery path it took — tap <strong>View Route</strong> for step-by-step tracking.
+          </p>
+        </div>
+
+        {ordersList.length === 0 ? (
+          <div className="text-center py-12 bg-white rounded-2xl border border-[#E5DCCF]">
+            <Truck className="w-12 h-12 text-[#E5DCCF] mx-auto mb-3" />
+            <p className="text-sm text-[#6B7264]">No orders placed yet.</p>
+            <a
+              href="/orders"
+              className="inline-flex items-center gap-2 mt-4 px-4 py-2 text-[#2D5A38] border border-[#2D5A38] rounded-xl text-xs font-semibold hover:bg-[#E8F0E9] transition-colors"
+            >
+              <Package className="w-4 h-4" />
+              View My Orders
+            </a>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {ordersList.map((o) => {
+              const r = o.route
+                ? (typeof o.route === 'string' ? JSON.parse(o.route) : o.route)
+                : null;
+              const delC =
+                (o.delivery_lat != null && o.delivery_lng != null)
+                  ? { lat: Number(o.delivery_lat), lng: Number(o.delivery_lng) }
+                  : r?.delivery_coords || null;
+              const show = r && r.pickup_coords && delC;
+
+              return (
+                <div key={o.id} className="bg-white rounded-2xl border border-[#E5DCCF] shadow-xs overflow-hidden">
+                  <div className="p-5">
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold font-mono text-[#232921]">#{o.id.slice(0, 8)}</span>
+                        <span className="text-xs text-[#6B7264]">{o.crop} • {o.quantity} {o.unit || 'kg'}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase border border-[#C2D6C6] bg-[#E8F0E9] text-[#2D5A38]">
+                          {o.status}
+                        </span>
+                        <button
+                          onClick={() => navigate(`/order-tracking?orderId=${o.id}`)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#2D5A38] text-white rounded-lg text-xs font-semibold hover:bg-[#1E3D27] transition-colors cursor-pointer"
+                        >
+                          <Truck className="w-3.5 h-3.5" />
+                          View Route
+                        </button>
+                      </div>
+                    </div>
+
+                    {show ? (
+                      <div className="mb-3">
+                        <RouteMap
+                          pickup={{ ...r.pickup_coords, label: 'Farm Pickup' }}
+                          delivery={{ ...delC, label: o.delivery_address || 'Delivery' }}
+                          polyline={r.polyline || null}
+                          height={200}
+                        />
+                      </div>
+                    ) : (
+                      <div className="mb-3 px-3 py-2 rounded-lg bg-[#FAF7F2] border border-[#E5DCCF] text-[11px] text-[#8E9687]">
+                        Route not optimized yet for this order.
+                      </div>
+                    )}
+
+                    {r && (
+                      <p className="text-[11px] text-[#6B7264]">
+                        🚛 {r.distance_km} km • ~{Math.round(r.estimated_time_min)}{t('common.minutes')}
+                        {r.waypoints?.length ? ` • ${r.waypoints.length} ${t('tracking.steps.waypointsOptimized')}` : ''}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     );
   }
