@@ -602,8 +602,8 @@ export default function FarmerAssistantChat() {
       {/* Floating chat launcher */}
       <button
         onClick={() => setOpen((o) => !o)}
-        aria-label={open ? (language === 'hi' ? 'सहायक बंद करें' : 'Close assistant') : (language === 'hi' ? 'किसान सहायक खोलें' : 'Open Kisan Assistant')}
-        className="fixed bottom-5 right-5 z-[70] group flex items-center gap-2"
+aria-label={open ? (language === 'hi' ? 'सहायक बंद करें' : 'Close assistant') : (language === 'hi' ? 'किसान सहायक खोलें' : 'Open Kisan Assistant')}
+        className="fixed bottom-5 right-5 z-[1500] group flex items-center gap-2"
       >
         <AnimatePresence>
           {!open && (
@@ -638,7 +638,7 @@ export default function FarmerAssistantChat() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 24, scale: 0.96 }}
             transition={{ duration: 0.2 }}
-            className="fixed bottom-5 right-5 z-[70] w-[380px] max-w-[calc(100vw-1.5rem)] h-[540px] max-h-[calc(100vh-5rem)] bg-(--card) rounded-2xl border border-(--line) shadow-2xl flex flex-col overflow-hidden"
+className="fixed bottom-5 right-5 z-[1500] w-[380px] max-w-[calc(100vw-1.5rem)] h-[540px] max-h-[calc(100vh-5rem)] bg-(--card) rounded-2xl border border-(--line) shadow-2xl flex flex-col overflow-hidden"
           >
             {/* Header */}
             <div className="bg-(--leaf) text-(--canvas) px-4 py-3 flex items-center gap-3">
