@@ -26,6 +26,15 @@ function ProductCard({ product, onBuy, index }) {
   const [deliveryAddress, setDeliveryAddress] = useState(user?.delivery_address || user?.location || '');
   const [saveAddress, setSaveAddress] = useState(true);
 
+  // Lock body scroll while the buy modal is open. The modal manages its own
+  // internal scrolling, so the page behind must stay still.
+  useEffect(() => {
+    if (!showBuyModal) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prevOverflow; };
+  }, [showBuyModal]);
+
   const handlePayAndOrder = async () => {
     if (!deliveryAddress.trim()) {
       setError('Please enter a delivery address.');
@@ -130,11 +139,12 @@ function ProductCard({ product, onBuy, index }) {
 
       {/* Buy Modal */}
       {showBuyModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="min-h-full flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl"
+            className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl max-h-[88vh] overflow-y-auto"
           >
             <h3 className="text-xl font-bold text-[#232921] mb-4">Place Order</h3>
 
@@ -249,6 +259,7 @@ function ProductCard({ product, onBuy, index }) {
               {error && <span className="text-xs text-red-600">{error}</span>}
             </div>
           </motion.div>
+          </div>
         </div>
       )}
     </>
