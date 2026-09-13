@@ -188,7 +188,13 @@ export default function App() {
               <Route path="/" element={<Navigate to={user ? (user.role === 'farmer' ? '/dashboard' : '/marketplace') : '/login'} replace />} />
               <Route path="/login" element={<Login />} />
               <Route path="/marketplace" element={<ConsumerMarketplace />} />
-              <Route path="/dashboard" element={<FarmerDashboard />} />
+              {/* Farmer Studio is strictly for farmer/FPO accounts. Redirect
+                  buyer accounts elsewhere so roles stay separate. */}
+              <Route path="/dashboard" element={
+                user && (user.role === 'farmer' || user.role === 'fpo')
+                  ? <FarmerDashboard />
+                  : <Navigate to={user ? '/marketplace' : '/login'} replace />
+              } />
               <Route path="/orders" element={<Orders />} />
               <Route path="/tracking" element={<Tracking />} />
             </Routes>

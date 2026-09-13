@@ -15,6 +15,9 @@ const PAYMENT_METHODS = [
 
 function ProductCard({ product, onBuy, index }) {
   const { user } = useAuth();
+  // Roles are strictly separate: only a buyer account (consumer / bulk_buyer)
+  // can place an order. Farmer/FPO accounts are sellers and cannot buy.
+  const isBuyer = user && (user.role === 'consumer' || user.role === 'bulk_buyer');
   const [showBuyModal, setShowBuyModal] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState('upi');
@@ -105,13 +108,23 @@ function ProductCard({ product, onBuy, index }) {
             </div>
           </div>
 
-          <button
-            onClick={() => setShowBuyModal(true)}
-            className="flex items-center gap-1.5 bg-[#2D5A38] hover:bg-[#1E3D27] text-[#FAF7F2] font-semibold px-3.5 py-2 rounded-xl shadow-xs active:scale-95 transition-all text-xs cursor-pointer"
-          >
-            <ShoppingBag className="w-3.5 h-3.5" />
-            <span>Buy Direct</span>
-          </button>
+          {isBuyer ? (
+            <button
+              onClick={() => setShowBuyModal(true)}
+              className="flex items-center gap-1.5 bg-[#2D5A38] hover:bg-[#1E3D27] text-[#FAF7F2] font-semibold px-3.5 py-2 rounded-xl shadow-xs active:scale-95 transition-all text-xs cursor-pointer"
+            >
+              <ShoppingBag className="w-3.5 h-3.5" />
+              <span>Buy Direct</span>
+            </button>
+          ) : (
+            <span
+              title={user ? 'Seller accounts list crops — use a separate buyer account to order.' : 'Login as a buyer to place orders.'}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-[#E5DCCF] bg-[#FAF7F2] text-[#8E9687] text-xs font-semibold"
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>Selling only</span>
+            </span>
+          )}
         </div>
       </motion.div>
 
@@ -258,7 +271,7 @@ export default function Marketplace() {
   useEffect(() => {
     const loadListings = async () => {
       try {
-        const data = await api.getProducts();
+        const data = await api.getProducts({ status: 'active' });
         if (data.listings && data.listings.length > 0) {
           const formatted = data.listings.map(l => ({
             id: l.id,

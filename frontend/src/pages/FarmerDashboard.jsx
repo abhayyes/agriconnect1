@@ -22,20 +22,22 @@ import { useAuth } from '../App';
 function listingToInventory(l) {
   const cropLower = (l.crop || '').toLowerCase();
   const highDemand = /tomato|onion|potato|mango/.test(cropLower);
+  const isActive = l.status === 'active';
   return {
     id: l.id,
     name: l.crop,
     grade: l.variety || 'Grade A+',
     stock: `${l.quantity} ${l.unit}`,
     price: `₹${l.price_per_unit}/${l.unit}`,
-    demand: highDemand ? 'High Mandi Demand' : 'Active in Mandi',
-    status: 'Active in Mandi',
+    demand: isActive ? (highDemand ? 'High Mandi Demand' : 'Active in Mandi') : 'Removed from Marketplace',
+    status: isActive ? 'Active in Mandi' : 'Removed',
     // Raw fields for the adjust modal
     rawId: l.id,
     rawPricePerUnit: Number(l.price_per_unit),
     rawQuantity: Number(l.quantity),
     rawUnit: l.unit || 'kg',
-    rawVariety: l.variety || 'Grade A+'
+    rawVariety: l.variety || 'Grade A+',
+    rawStatus: l.status || 'active'
   };
 }
 
@@ -101,10 +103,25 @@ export default function FarmerDashboard() {
     }
   };
 
+  const handleReactivateListing = async () => {
+    if (!adjustItem) return;
+    setAdjusting(true);
+    try {
+      await api.updateListing(adjustItem.rawId, { status: 'active' });
+      await loadMyListings();
+      setShowAdjustModal(false);
+      setAdjustItem(null);
+    } catch (err) {
+      alert(`Failed to reactivate listing: ${err.message}`);
+    } finally {
+      setAdjusting(false);
+    }
+  };
+
   // Load this farmer's real listings and orders from the backend
   const loadMyListings = async () => {
     try {
-      const data = await api.getProducts();
+      const data = await api.getProducts({ status: 'all' });
       if (user?.id && data.listings) {
         const mine = data.listings.filter(l => l.farmer_id === user.id);
         setInventoryItems(mine.map(listingToInventory));
@@ -134,6 +151,7 @@ export default function FarmerDashboard() {
   // Derive stats from real data — no hardcoded demo values for new accounts.
   const deliveredOrders = orders.filter(o => o.status === 'delivered');
   const totalRevenue = deliveredOrders.reduce((sum, o) => sum + Number(o.total_price || 0), 0);
+  const activeListings = inventoryItems.filter(i => i.rawStatus === 'active');
 
   const stats = [
     {
@@ -146,9 +164,9 @@ export default function FarmerDashboard() {
     },
     {
       title: "Active Listed Crops",
-      value: `${inventoryItems.length} Batch${inventoryItems.length !== 1 ? 'es' : ''}`,
-      change: inventoryItems.length > 0 ? "Listed on mandi" : "List crops to sell",
-      isPositive: inventoryItems.length > 0,
+      value: `${activeListings.length} Batch${activeListings.length !== 1 ? 'es' : ''}`,
+      change: activeListings.length > 0 ? "Listed on mandi" : "List crops to sell",
+      isPositive: activeListings.length > 0,
       icon: Package,
       description: "Ready for procurement"
     },
@@ -354,8 +372,20 @@ export default function FarmerDashboard() {
                     ORDER SUMMARY
                   </div>
                   <p className="text-xs text-[#6B7264] leading-relaxed">
-                    You have <strong className="text-[#2D5A38]">{orders.length} order{orders.length !== 1 ? 's' : ''}</strong> total
-                    {deliveredOrders.length > 0 ? `, with <strong className="text-[#2D5A38]">${deliveredOrders.length} delivered</strong> and ₹${totalRevenue.toLocaleString('en-IN')} earned.` : ' — all pending or in transit.'}
+                    You have{' '}
+                    <strong className="text-[#2D5A38]">
+                      {orders.length} order{orders.length !== 1 ? 's' : ''}
+                    </strong>{' '}
+                    total
+                    {deliveredOrders.length > 0 ? (
+                      <>
+                        , with{' '}
+                        <strong className="text-[#2D5A38]">{deliveredOrders.length} delivered</strong> and ₹
+                        {totalRevenue.toLocaleString('en-IN')} earned.
+                      </>
+                    ) : (
+                      ' — all pending or in transit.'
+                    )}
                   </p>
                 </div>
 
@@ -542,14 +572,25 @@ export default function FarmerDashboard() {
                 </div>
 
                 <div className="pt-2 flex justify-between">
-                  <button
-                    onClick={handleRemoveListing}
-                    disabled={adjusting}
-                    className="px-3 py-2 rounded-xl bg-white text-[#991B1B] border border-red-200 text-xs font-semibold hover:bg-red-50 transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    Remove Listing
-                  </button>
+                  {adjustItem.rawStatus === 'active' ? (
+                    <button
+                      onClick={handleRemoveListing}
+                      disabled={adjusting}
+                      className="px-3 py-2 rounded-xl bg-white text-[#991B1B] border border-red-200 text-xs font-semibold hover:bg-red-50 transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Remove Listing
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleReactivateListing}
+                      disabled={adjusting}
+                      className="px-3 py-2 rounded-xl bg-white text-[#2D5A38] border border-[#C2D6C6] text-xs font-semibold hover:bg-[#E8F0E9] transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Reactivate Listing
+                    </button>
+                  )}
                   <div className="flex gap-2">
                     <button
                       onClick={() => { setShowAdjustModal(false); setAdjustItem(null); }}

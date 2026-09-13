@@ -22,10 +22,17 @@ async function getListings(req, res, next) {
       params.push(`%${crop}%`);
     }
 
-    if (status) {
+    if (status === 'all') {
+      // No status filter — return everything (used by farmer dashboard)
+    } else if (status) {
       paramCount++;
       query += ` AND l.status = $${paramCount}`;
       params.push(status);
+    } else {
+      // Default: only show active listings
+      paramCount++;
+      query += ` AND l.status = $${paramCount}`;
+      params.push('active');
     }
 
     if (location) {
@@ -49,10 +56,16 @@ async function getListings(req, res, next) {
       countQuery += ` AND crop ILIKE $${countParamIndex}`;
       countParams.push(`%${crop}%`);
     }
-    if (status) {
+    if (status === 'all') {
+      // No status filter
+    } else if (status) {
       countParamIndex++;
       countQuery += ` AND status = $${countParamIndex}`;
       countParams.push(status);
+    } else {
+      countParamIndex++;
+      countQuery += ` AND status = $${countParamIndex}`;
+      countParams.push('active');
     }
     if (location) {
       countParamIndex++;
