@@ -7,6 +7,8 @@ import FarmerDashboard from './pages/FarmerDashboard';
 import Tracking from './pages/OrderTracking';
 import Orders from './pages/Orders';
 import { api } from './services/api';
+import { LanguageProvider, useLanguage } from './context/LanguageContext';
+import LanguageToggle from './components/LanguageToggle';
 
 // Simple lightweight AuthContext for authentic session state
 export const AuthContext = createContext(null);
@@ -17,6 +19,7 @@ export function useAuth() {
 
 function Navbar() {
   const { user, logout, backendStatus } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   const isFarmer = user?.role === 'farmer' || user?.role === 'fpo';
@@ -47,12 +50,17 @@ function Navbar() {
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-[#6B7264] hidden sm:block">Direct Farmer to Consumer Network</p>
+                <p className="text-[11px] text-[#6B7264] hidden sm:block">{t('nav.tagline')}</p>
               </div>
             </NavLink>
 
           {/* Navigation Links */}
           <nav className="flex items-center gap-1.5 sm:gap-3">
+            {/* Language Toggle */}
+            <LanguageToggle />
+
+            <div className="h-4 w-px bg-[#E5DCCF] mx-1 hidden sm:block" />
+
             {isBuyer && (
               <NavLink
                 to="/marketplace"
@@ -65,7 +73,7 @@ function Navbar() {
                 }
               >
                 <ShoppingBag className="w-4 h-4" />
-                <span>Mandi Market</span>
+                <span>{t('nav.marketplace')}</span>
               </NavLink>
             )}
 
@@ -81,7 +89,7 @@ function Navbar() {
                 }
               >
                 <LayoutDashboard className="w-4 h-4" />
-                <span>Farmer Studio</span>
+                <span>{t('nav.dashboard')}</span>
               </NavLink>
             )}
 
@@ -96,7 +104,7 @@ function Navbar() {
               }
             >
               <Package className="w-4 h-4" />
-              <span>Orders</span>
+              <span>{t('nav.orders')}</span>
             </NavLink>
 
             <NavLink
@@ -110,7 +118,7 @@ function Navbar() {
               }
             >
               <Truck className="w-4 h-4" />
-              <span>Dispatch Track</span>
+              <span>{t('nav.tracking')}</span>
             </NavLink>
 
             <div className="h-4 w-px bg-[#E5DCCF] mx-1 hidden sm:block" />
@@ -121,12 +129,12 @@ function Navbar() {
                 <div className="hidden md:flex flex-col text-right">
                   <span className="text-xs font-semibold text-[#232921] leading-tight">{user.name}</span>
                   <span className="text-[10px] text-[#6B7264] font-mono capitalize">
-                    {isFarmer ? '🌾 Kisan / FPO' : '🛒 Buyer'}
+                    {isFarmer ? t('nav.role.farmer') : t('nav.role.buyer')}
                   </span>
                 </div>
                 <button
                   onClick={logout}
-                  title="Logout / Switch Account"
+                  title={t('nav.logout')}
                   className="p-2 rounded-lg text-[#6B7264] hover:text-[#991B1B] hover:bg-[#FEE2E2] transition-colors"
                 >
                   <LogOut className="w-4 h-4" />
@@ -137,7 +145,7 @@ function Navbar() {
                 to="/login"
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#2D5A38] text-white hover:bg-[#1E3D27] text-xs font-semibold transition-colors shadow-xs"
               >
-                <span>Login / Register</span>
+                <span>{t('nav.login')}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </NavLink>
             )}
@@ -178,46 +186,56 @@ export default function App() {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loginUser, logout, backendStatus }}>
-      <BrowserRouter>
-        <div className="min-h-screen bg-[#FAF7F2] text-[#232921] flex flex-col selection:bg-[#2D5A38] selection:text-[#FAF7F2]">
-          <Navbar />
+    <LanguageProvider>
+      <AuthContext.Provider value={{ user, loginUser, logout, backendStatus }}>
+        <BrowserRouter>
+          <AppContent user={user} />
+        </BrowserRouter>
+      </AuthContext.Provider>
+    </LanguageProvider>
+  );
+}
 
-          <main className="flex-1 container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
-            <Routes>
-              <Route path="/" element={<Navigate to={user ? (user.role === 'farmer' ? '/dashboard' : '/marketplace') : '/login'} replace />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/marketplace" element={<ConsumerMarketplace />} />
-              {/* Farmer Studio is strictly for farmer/FPO accounts. Redirect
-                  buyer accounts elsewhere so roles stay separate. */}
-              <Route path="/dashboard" element={
-                user && (user.role === 'farmer' || user.role === 'fpo')
-                  ? <FarmerDashboard />
-                  : <Navigate to={user ? '/marketplace' : '/login'} replace />
-              } />
-              <Route path="/orders" element={<Orders />} />
-              <Route path="/tracking" element={<Tracking />} />
-              <Route path="/order-tracking" element={<Tracking />} />
-            </Routes>
-          </main>
+function AppContent({ user }) {
+  const { t } = useLanguage();
 
-          <footer className="border-t border-[#E5DCCF] bg-[#F2ECE1] text-[#6B7264] py-6 text-xs mt-12">
-            <div className="container mx-auto max-w-7xl px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-              <div className="flex items-center gap-2 font-medium">
-                <ShieldCheck className="w-4 h-4 text-[#2D5A38]" />
-                <span>AgriConnect — Smart India Hackathon 2026</span>
-              </div>
-              <div className="flex items-center gap-4 text-[#6B7264]">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[#2D5A38]" />
-                  Direct Trade Protocol Active
-                </span>
-                <span>Zero Middlemen • 100% Fair Value</span>
-              </div>
-            </div>
-          </footer>
+  return (
+    <div className="min-h-screen bg-[#FAF7F2] text-[#232921] flex flex-col selection:bg-[#2D5A38] selection:text-[#FAF7F2]">
+      <Navbar />
+
+      <main className="flex-1 container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
+        <Routes>
+          <Route path="/" element={<Navigate to={user ? (user.role === 'farmer' ? '/dashboard' : '/marketplace') : '/login'} replace />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/marketplace" element={<ConsumerMarketplace />} />
+          {/* Farmer Studio is strictly for farmer/FPO accounts. Redirect
+              buyer accounts elsewhere so roles stay separate. */}
+          <Route path="/dashboard" element={
+            user && (user.role === 'farmer' || user.role === 'fpo')
+              ? <FarmerDashboard />
+              : <Navigate to={user ? '/marketplace' : '/login'} replace />
+          } />
+          <Route path="/orders" element={<Orders />} />
+          <Route path="/tracking" element={<Tracking />} />
+          <Route path="/order-tracking" element={<Tracking />} />
+        </Routes>
+      </main>
+
+      <footer className="border-t border-[#E5DCCF] bg-[#F2ECE1] text-[#6B7264] py-6 text-xs mt-12">
+        <div className="container mx-auto max-w-7xl px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-2 font-medium">
+            <ShieldCheck className="w-4 h-4 text-[#2D5A38]" />
+            <span>{t('footer.tagline')}</span>
+          </div>
+          <div className="flex items-center gap-4 text-[#6B7264]">
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#2D5A38]" />
+              {t('footer.directTrade')}
+            </span>
+            <span>{t('footer.zeroMiddlemen')}</span>
+          </div>
         </div>
-      </BrowserRouter>
-    </AuthContext.Provider>
+      </footer>
+    </div>
   );
 }
