@@ -14,12 +14,13 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../services/api';
 import { useAuth } from '../App';
+import { useLanguage } from '../context/LanguageContext';
 
 // NOTE: Inventory is loaded from the logged-in farmer's OWN listings via the
 // backend (getProducts filtered by farmer_id). Demo/sample crops only exist as
 // real DB rows for the demo accounts — never as a hardcoded frontend fallback,
 // so a newly-registered farmer starts empty and lists their own crops.
-function listingToInventory(l) {
+function listingToInventory(l, t) {
   const cropLower = (l.crop || '').toLowerCase();
   const highDemand = /tomato|onion|potato|mango/.test(cropLower);
   const isActive = l.status === 'active';
@@ -29,8 +30,8 @@ function listingToInventory(l) {
     grade: l.variety || 'Grade A+',
     stock: `${l.quantity} ${l.unit}`,
     price: `₹${l.price_per_unit}/${l.unit}`,
-    demand: isActive ? (highDemand ? 'High Mandi Demand' : 'Active in Mandi') : 'Removed from Marketplace',
-    status: isActive ? 'Active in Mandi' : 'Removed',
+    demand: isActive ? (highDemand ? t('farmer.demand.high') : t('farmer.demand.active')) : t('farmer.demand.removed'),
+    status: isActive ? t('farmer.status.active') : t('farmer.status.removed'),
     // Raw fields for the adjust modal
     rawId: l.id,
     rawPricePerUnit: Number(l.price_per_unit),
@@ -43,6 +44,7 @@ function listingToInventory(l) {
 
 export default function FarmerDashboard() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [showModal, setShowModal] = useState(false);
   const [newCrop, setNewCrop] = useState({ name: '', stock: '', price: '', grade: 'Grade A+' });
   const [inventoryItems, setInventoryItems] = useState([]);
@@ -68,7 +70,7 @@ export default function FarmerDashboard() {
     const price = parseFloat(adjustForm.price);
     const qty = parseFloat(adjustForm.quantity);
     if (isNaN(price) || price < 0 || isNaN(qty) || qty < 0) {
-      alert('Please enter valid price and quantity.');
+      alert(t('farmer.alert.invalidPriceQty'));
       return;
     }
     setAdjusting(true);
@@ -81,7 +83,7 @@ export default function FarmerDashboard() {
       setShowAdjustModal(false);
       setAdjustItem(null);
     } catch (err) {
-      alert(`Failed to update listing: ${err.message}`);
+      alert(`${t('farmer.alert.updateFailed')} ${err.message}`);
     } finally {
       setAdjusting(false);
     }
@@ -89,7 +91,7 @@ export default function FarmerDashboard() {
 
   const handleRemoveListing = async () => {
     if (!adjustItem) return;
-    if (!confirm(`Remove "${adjustItem.name}" from your active listings? It will no longer be visible to buyers.`)) return;
+    if (!confirm(t('farmer.confirm.removeListingFull').replace('{name}', adjustItem.name))) return;
     setAdjusting(true);
     try {
       await api.updateListing(adjustItem.rawId, { status: 'inactive' });
@@ -97,7 +99,7 @@ export default function FarmerDashboard() {
       setShowAdjustModal(false);
       setAdjustItem(null);
     } catch (err) {
-      alert(`Failed to remove listing: ${err.message}`);
+      alert(`${t('farmer.alert.removeFailed')} ${err.message}`);
     } finally {
       setAdjusting(false);
     }
@@ -111,7 +113,7 @@ export default function FarmerDashboard() {
         // Studio mirrors the marketplace: removed (inactive) crops must not
         // appear here. Only active listings are shown.
         const mine = data.listings.filter(l => l.farmer_id === user.id && l.status === 'active');
-        setInventoryItems(mine.map(listingToInventory));
+        setInventoryItems(mine.map(l => listingToInventory(l, t)));
       }
     } catch (err) {
       console.warn('Could not load listings:', err.message);
@@ -142,28 +144,28 @@ export default function FarmerDashboard() {
 
   const stats = [
     {
-      title: "Gross Mandi Revenue",
+      title: t('farmer.stats.grossRevenue'),
       value: orders.length > 0 ? `₹${totalRevenue.toLocaleString('en-IN')}` : "₹0",
-      change: deliveredOrders.length > 0 ? `${deliveredOrders.length} sale${deliveredOrders.length > 1 ? 's' : ''}` : "No sales yet",
+      change: deliveredOrders.length > 0 ? `${deliveredOrders.length} ${deliveredOrders.length > 1 ? t('farmer.stats.sales') : t('farmer.stats.sale')}` : t('farmer.stats.noSales'),
       isPositive: totalRevenue > 0,
       icon: IndianRupee,
-      description: "Direct to Bank Account"
+      description: t('farmer.stats.bankSettlement')
     },
     {
-      title: "Active Listed Crops",
-      value: `${activeListings.length} Batch${activeListings.length !== 1 ? 'es' : ''}`,
-      change: activeListings.length > 0 ? "Listed on mandi" : "List crops to sell",
+      title: t('farmer.stats.activeCrops'),
+      value: `${activeListings.length} ${activeListings.length !== 1 ? t('farmer.stats.batches') : t('farmer.stats.batch')}`,
+      change: activeListings.length > 0 ? t('farmer.stats.listedOnMandi') : t('farmer.stats.listCropsPrompt'),
       isPositive: activeListings.length > 0,
       icon: Package,
-      description: "Ready for procurement"
+      description: t('farmer.stats.readyProcurement')
     },
     {
-      title: "Total Shipments",
-      value: `${deliveredOrders.length} Deliver${deliveredOrders.length !== 1 ? 'ies' : 'y'}`,
-      change: deliveredOrders.length > 0 ? "All completed" : "No deliveries yet",
+      title: t('farmer.stats.totalShipments'),
+      value: `${deliveredOrders.length} ${deliveredOrders.length !== 1 ? t('farmer.stats.deliveries') : t('farmer.stats.delivery')}`,
+      change: deliveredOrders.length > 0 ? t('farmer.stats.allCompleted') : t('farmer.stats.noDeliveries'),
       isPositive: deliveredOrders.length > 0,
       icon: Truck,
-      description: "Completed orders"
+      description: t('farmer.stats.completedOrders')
     }
   ];
 
@@ -196,10 +198,10 @@ export default function FarmerDashboard() {
       await loadMyListings();
       setNewCrop({ name: '', stock: '', price: '', grade: 'Grade A+' });
       setShowModal(false);
-      alert('Crop listed successfully! It is now visible to buyers in the marketplace.');
+      alert(t('farmer.alert.cropListedSuccess'));
     } catch (err) {
       console.error('Failed to create listing:', err);
-      alert(`Failed to list crop: ${err.message}`);
+      alert(`${t('farmer.alert.cropListFailed')} ${err.message}`);
     }
   };
 
@@ -210,13 +212,13 @@ export default function FarmerDashboard() {
         <div>
           <div className="flex items-center gap-1.5 text-xs font-semibold text-[#2D5A38] mb-1">
             <Wheat className="w-4 h-4" />
-            <span>KISAN & FPO PRODUCER DASHBOARD</span>
+            <span>{t('farmer.banner.tagline')}</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#232921] font-heading">
-            Farm Operations & Direct Sales Hub
+            {t('farmer.banner.title')}
           </h1>
           <p className="text-xs sm:text-sm text-[#6B7264] mt-1">
-            Manage your crop inventory, track live market demand, and view transparent UPI settlement logs.
+            {t('farmer.banner.desc')}
           </p>
         </div>
 
@@ -226,7 +228,7 @@ export default function FarmerDashboard() {
             className="flex items-center gap-1.5 px-4 py-2.5 bg-[#2D5A38] hover:bg-[#1E3D27] text-white font-semibold rounded-xl text-xs shadow-xs active:scale-95 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>List New Crop</span>
+            <span>{t('farmer.button.listNewCrop')}</span>
           </button>
         </div>
       </div>
@@ -272,25 +274,25 @@ export default function FarmerDashboard() {
           <div className="flex items-center justify-between">
             <h2 className="text-base font-bold text-[#232921] font-heading flex items-center gap-2">
               <Package className="w-4 h-4 text-[#2D5A38]" />
-              Active Harvest Batches
+              {t('farmer.inventory.heading')}
             </h2>
-            <span className="text-xs text-[#6B7264] font-medium">{inventoryItems.length} Registered Lots</span>
+            <span className="text-xs text-[#6B7264] font-medium">{inventoryItems.length} {t('farmer.inventory.registeredLots')}</span>
           </div>
 
           <div className="bg-white rounded-2xl border border-[#E5DCCF] overflow-hidden shadow-xs">
             {inventoryItems.length === 0 ? (
               <div className="p-10 text-center">
                 <Package className="w-12 h-12 text-[#E5DCCF] mx-auto mb-3" />
-                <h3 className="text-sm font-bold text-[#232921] mb-1">No crops listed yet</h3>
+                <h3 className="text-sm font-bold text-[#232921] mb-1">{t('farmer.inventory.emptyTitle')}</h3>
                 <p className="text-xs text-[#6B7264] mb-4 max-w-sm mx-auto">
-                  You haven't listed any crops yet. Add your own harvest to start selling directly to buyers in the marketplace.
+                  {t('farmer.inventory.emptyDesc')}
                 </p>
                 <button
                   onClick={() => setShowModal(true)}
                   className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#2D5A38] hover:bg-[#1E3D27] text-white font-semibold rounded-xl text-xs shadow-xs transition-colors cursor-pointer"
                 >
                   <Plus className="w-4 h-4" />
-                  <span>List Your First Crop</span>
+                  <span>{t('farmer.button.listFirstCrop')}</span>
                 </button>
               </div>
             ) : (
@@ -305,9 +307,9 @@ export default function FarmerDashboard() {
                       </span>
                     </div>
                     <div className="text-xs text-[#6B7264] flex items-center gap-3">
-                      <span>Available: <strong className="text-[#232921]">{item.stock}</strong></span>
+                      <span>{t('farmer.inventory.available')} <strong className="text-[#232921]">{item.stock}</strong></span>
                       <span>•</span>
-                      <span>Mandi Demand: <strong className="text-[#2D5A38]">{item.demand}</strong></span>
+                      <span>{t('farmer.inventory.mandiDemand')} <strong className="text-[#2D5A38]">{item.demand}</strong></span>
                     </div>
                   </div>
 
@@ -322,7 +324,7 @@ export default function FarmerDashboard() {
                       onClick={() => handleOpenAdjust(item)}
                       className="px-3 py-1.5 rounded-lg bg-[#FAF7F2] hover:bg-[#F2ECE1] text-[#232921] border border-[#E5DCCF] text-xs font-semibold transition-colors cursor-pointer"
                     >
-                      Adjust
+                      {t('farmer.button.adjust')}
                     </button>
                   </div>
                 </div>
@@ -337,7 +339,7 @@ export default function FarmerDashboard() {
           <div className="flex items-center justify-between">
             <h2 className="text-base font-bold text-[#232921] font-heading flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-[#8C6D46]" />
-              Mandi Demand Intelligence
+              {t('farmer.intelligence.title')}
             </h2>
           </div>
 
@@ -345,9 +347,9 @@ export default function FarmerDashboard() {
             {barChartData.length === 0 ? (
               <div className="text-center py-8">
                 <TrendingUp className="w-10 h-10 text-[#E5DCCF] mx-auto mb-3" />
-                <p className="text-sm font-semibold text-[#232921] mb-1">No order data yet</p>
+                <p className="text-sm font-semibold text-[#232921] mb-1">{t('farmer.intelligence.noDataTitle')}</p>
                 <p className="text-xs text-[#6B7264]">
-                  Mandi demand intelligence and payout charts will appear once buyers start placing orders on your listings.
+                  {t('farmer.intelligence.noDataDesc')}
                 </p>
               </div>
             ) : (
@@ -356,22 +358,23 @@ export default function FarmerDashboard() {
                 <div className="p-3.5 rounded-xl bg-[#FAF7F2] border border-[#E5DCCF]">
                   <div className="flex items-center gap-1.5 text-[#8C6D46] text-xs font-bold mb-1">
                     <TrendingUp className="w-3.5 h-3.5" />
-                    ORDER SUMMARY
+                    {t('farmer.intelligence.orderSummary')}
                   </div>
                   <p className="text-xs text-[#6B7264] leading-relaxed">
-                    You have{' '}
+                    {t('farmer.summary.youHave')}{' '}
                     <strong className="text-[#2D5A38]">
-                      {orders.length} order{orders.length !== 1 ? 's' : ''}
+                      {orders.length} {orders.length !== 1 ? t('common.orders') : t('common.order')}
                     </strong>{' '}
-                    total
+                    {t('farmer.summary.total')}
                     {deliveredOrders.length > 0 ? (
                       <>
-                        , with{' '}
-                        <strong className="text-[#2D5A38]">{deliveredOrders.length} delivered</strong> and ₹
-                        {totalRevenue.toLocaleString('en-IN')} earned.
+                        {t('farmer.summary.with')}{' '}
+                        <strong className="text-[#2D5A38]">{deliveredOrders.length} {t('farmer.summary.delivered')}</strong>{' '}
+                        {t('farmer.summary.and')} ₹
+                        {totalRevenue.toLocaleString('en-IN')} {t('farmer.summary.earned')}
                       </>
                     ) : (
-                      ' — all pending or in transit.'
+                      t('farmer.summary.allPendingOrTransit')
                     )}
                   </p>
                 </div>
@@ -379,9 +382,9 @@ export default function FarmerDashboard() {
                 {/* Visual Bar Chart */}
                 <div>
                   <div className="flex items-center justify-between text-xs text-[#6B7264] font-medium mb-2">
-                    <span>Recent Order Values</span>
+                    <span>{t('farmer.intelligence.recentOrderValues')}</span>
                     <span className="text-[#2D5A38] font-bold">
-                      {deliveredOrders.length > 0 ? `${deliveredOrders.length} completed` : `${orders.length} in progress`}
+                      {deliveredOrders.length > 0 ? `${deliveredOrders.length} ${t('farmer.intelligence.completedCount')}` : `${orders.length} ${t('farmer.intelligence.inProgressCount')}`}
                     </span>
                   </div>
 
@@ -430,16 +433,16 @@ export default function FarmerDashboard() {
                 <X className="w-5 h-5" />
               </button>
 
-              <h3 className="text-lg font-bold text-[#232921] font-heading mb-1">List New Harvest Lot</h3>
-              <p className="text-xs text-[#6B7264] mb-4">Register your freshly harvested crops to the direct mandi market.</p>
+              <h3 className="text-lg font-bold text-[#232921] font-heading mb-1">{t('farmer.modal.addCropTitle')}</h3>
+              <p className="text-xs text-[#6B7264] mb-4">{t('farmer.modal.addCropDesc')}</p>
 
               <form onSubmit={handleAddCrop} className="space-y-3.5">
                 <div>
-                  <label className="block text-xs font-medium text-[#232921] mb-1">Crop / Product Name</label>
+                  <label className="block text-xs font-medium text-[#232921] mb-1">{t('farmer.modal.cropName')}</label>
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Organic Bell Peppers"
+                    placeholder={t('farmer.modal.cropNamePlaceholder')}
                     value={newCrop.name}
                     onChange={(e) => setNewCrop({ ...newCrop, name: e.target.value })}
                     className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E5DCCF] rounded-xl text-xs text-[#232921] focus:outline-none focus:border-[#2D5A38] focus:bg-white"
@@ -448,22 +451,22 @@ export default function FarmerDashboard() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-[#232921] mb-1">Stock Quantity (kg)</label>
+                    <label className="block text-xs font-medium text-[#232921] mb-1">{t('farmer.modal.stockQuantity')}</label>
                     <input
                       type="number"
                       required
-                      placeholder="e.g. 500"
+                      placeholder={t('farmer.modal.stockPlaceholder')}
                       value={newCrop.stock}
                       onChange={(e) => setNewCrop({ ...newCrop, stock: e.target.value })}
                       className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E5DCCF] rounded-xl text-xs text-[#232921] focus:outline-none focus:border-[#2D5A38] focus:bg-white"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-[#232921] mb-1">Price (₹ per kg)</label>
+                    <label className="block text-xs font-medium text-[#232921] mb-1">{t('farmer.modal.pricePerKg')}</label>
                     <input
                       type="number"
                       required
-                      placeholder="e.g. 45"
+                      placeholder={t('farmer.modal.pricePlaceholder')}
                       value={newCrop.price}
                       onChange={(e) => setNewCrop({ ...newCrop, price: e.target.value })}
                       className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E5DCCF] rounded-xl text-xs text-[#232921] focus:outline-none focus:border-[#2D5A38] focus:bg-white"
@@ -472,15 +475,15 @@ export default function FarmerDashboard() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-[#232921] mb-1">Quality Grade</label>
+                  <label className="block text-xs font-medium text-[#232921] mb-1">{t('farmer.modal.qualityGrade')}</label>
                   <select
                     value={newCrop.grade}
                     onChange={(e) => setNewCrop({ ...newCrop, grade: e.target.value })}
                     className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E5DCCF] rounded-xl text-xs text-[#232921] focus:outline-none focus:border-[#2D5A38] focus:bg-white"
                   >
-                    <option value="Grade A+">Grade A+ (Certified Organic)</option>
-                    <option value="Grade A">Grade A (Prime Mandi Lot)</option>
-                    <option value="Grade B+">Grade B+ (Standard Lot)</option>
+                    <option value="Grade A+">{t('farmer.grade.gradeAPlus')}</option>
+                    <option value="Grade A">{t('farmer.grade.gradeA')}</option>
+                    <option value="Grade B+">{t('farmer.grade.gradeBPlus')}</option>
                   </select>
                 </div>
 
@@ -490,13 +493,13 @@ export default function FarmerDashboard() {
                     onClick={() => setShowModal(false)}
                     className="px-4 py-2 rounded-xl bg-[#FAF7F2] text-[#6B7264] hover:text-[#232921] text-xs font-semibold"
                   >
-                    Cancel
+                    {t('common.cancel')}
                   </button>
                   <button
                     type="submit"
                     className="px-4 py-2 rounded-xl bg-[#2D5A38] hover:bg-[#1E3D27] text-white font-semibold text-xs shadow-xs cursor-pointer"
                   >
-                    Register Crop
+                    {t('farmer.button.registerCrop')}
                   </button>
                 </div>
               </form>
@@ -523,16 +526,16 @@ export default function FarmerDashboard() {
                 <X className="w-5 h-5" />
               </button>
 
-              <h3 className="text-lg font-bold text-[#232921] font-heading mb-1">Adjust Listing</h3>
+              <h3 className="text-lg font-bold text-[#232921] font-heading mb-1">{t('farmer.modal.adjustTitle')}</h3>
               <p className="text-xs text-[#6B7264] mb-4">
-                Update price and stock for <strong>{adjustItem.name}</strong> ({adjustItem.grade}).
+                {t('farmer.modal.adjustDesc')} <strong>{adjustItem.name}</strong> ({adjustItem.grade}).
               </p>
 
               <div className="space-y-3.5">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-[#232921] mb-1">
-                      Price (₹ per {adjustItem.rawUnit})
+                      {t('farmer.modal.pricePerUnit')} {adjustItem.rawUnit})
                     </label>
                     <input
                       type="number"
@@ -545,7 +548,7 @@ export default function FarmerDashboard() {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-[#232921] mb-1">
-                      Stock ({adjustItem.rawUnit})
+                      {t('farmer.modal.stockUnit')} {adjustItem.rawUnit})
                     </label>
                     <input
                       type="number"
@@ -565,21 +568,21 @@ export default function FarmerDashboard() {
                     className="px-3 py-2 rounded-xl bg-white text-[#991B1B] border border-red-200 text-xs font-semibold hover:bg-red-50 transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
-                    Remove Listing
+                    {t('farmer.button.removeListing')}
                   </button>
                   <div className="flex gap-2">
                     <button
                       onClick={() => { setShowAdjustModal(false); setAdjustItem(null); }}
                       className="px-4 py-2 rounded-xl bg-[#FAF7F2] text-[#6B7264] hover:text-[#232921] text-xs font-semibold"
                     >
-                      Cancel
+                      {t('common.cancel')}
                     </button>
                     <button
                       onClick={handleSaveAdjust}
                       disabled={adjusting}
                       className="px-4 py-2 rounded-xl bg-[#2D5A38] hover:bg-[#1E3D27] text-white font-semibold text-xs shadow-xs cursor-pointer disabled:opacity-50"
                     >
-                      {adjusting ? 'Saving…' : 'Save Changes'}
+                      {adjusting ? t('common.saving') : t('common.saveChanges')}
                     </button>
                   </div>
                 </div>

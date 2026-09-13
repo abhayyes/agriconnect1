@@ -5,16 +5,18 @@ import { motion } from 'framer-motion';
 import { api } from '../services/api';
 import DeliveryMapPicker from '../components/DeliveryMapPicker';
 import { useAuth } from '../App';
+import { useLanguage } from '../context/LanguageContext';
 
 const PAYMENT_METHODS = [
-  { id: 'upi', label: 'UPI', sub: 'GPay / PhonePe / Paytm', icon: '📲' },
-  { id: 'card', label: 'Card', sub: 'Credit / Debit', icon: '💳' },
-  { id: 'netbanking', label: 'Net Banking', sub: 'All major banks', icon: '🏦' },
-  { id: 'wallet', label: 'Wallet', sub: 'Paytm / Amazon Pay', icon: '👛' },
-  { id: 'cod', label: 'Cash on Delivery', sub: 'Pay at your doorstep', icon: '💵' }
+  { id: 'upi', labelKey: 'payment.upi.label', subKey: 'payment.upi.sub', icon: '📲' },
+  { id: 'card', labelKey: 'payment.card.label', subKey: 'payment.card.sub', icon: '💳' },
+  { id: 'netbanking', labelKey: 'payment.netbanking.label', subKey: 'payment.netbanking.sub', icon: '🏦' },
+  { id: 'wallet', labelKey: 'payment.wallet.label', subKey: 'payment.wallet.sub', icon: '👛' },
+  { id: 'cod', labelKey: 'marketplace.cod', subKey: 'payment.cod.sub', icon: '💵' }
 ];
 
 function ProductCard({ product, onBuy, index }) {
+  const { t } = useLanguage();
   const { user } = useAuth();
   // Roles are strictly separate: only a buyer account (consumer / bulk_buyer)
   // can place an order. Farmer/FPO accounts are sellers and cannot buy.
@@ -74,7 +76,7 @@ function ProductCard({ product, onBuy, index }) {
 
   const handlePayAndOrder = async () => {
     if (!deliveryAddress.trim()) {
-      setError('Please enter a delivery address.');
+      setError(t('marketplace.error.addressRequired'));
       return;
     }
     if (!deliveryLat || !deliveryLng) {
@@ -123,18 +125,18 @@ function ProductCard({ product, onBuy, index }) {
             <div className="absolute top-3 left-3 flex gap-1.5 flex-wrap">
               {product.isDirect && (
                 <span className="inline-flex items-center gap-1 bg-[#2D5A38] text-[#FAF7F2] font-semibold text-[11px] px-2.5 py-0.5 rounded-full shadow-xs">
-                  <ShieldCheck className="w-3 h-3" /> Direct Farm
+                  <ShieldCheck className="w-3 h-3" /> {t('marketplace.badge.directFarm')}
                 </span>
               )}
               {product.organic && (
                 <span className="bg-[#8C6D46] text-[#FAF7F2] font-semibold text-[11px] px-2 py-0.5 rounded-full shadow-xs">
-                  Organic Certified
+                  {t('marketplace.badge.organicCertified')}
                 </span>
               )}
             </div>
 
             <div className="absolute bottom-2 right-2 bg-white/95 text-[#232921] text-[11px] font-mono px-2 py-0.5 rounded-md border border-[#E5DCCF] shadow-xs">
-              Stock: <strong>{product.stock}</strong>
+              {t('marketplace.product.stock')} <strong>{product.stock}</strong>
             </div>
           </div>
 
@@ -146,11 +148,11 @@ function ProductCard({ product, onBuy, index }) {
           <div className="space-y-1 text-xs text-[#6B7264] mb-4">
             <div className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-[#2D5A38]" />
-              <span className="text-[#232921] font-medium">Producer:</span> {product.farmer}
+              <span className="text-[#232921] font-medium">{t('marketplace.product.producer')}</span> {product.farmer}
             </div>
             <div className="flex items-center gap-1.5 text-[#6B7264]">
               <MapPin className="w-3.5 h-3.5 text-[#8E9687]" />
-              <span>{product.location} • Mandi Hub 04</span>
+              <span>{product.location} • {t('marketplace.product.mandiHub')}</span>
             </div>
           </div>
         </div>
@@ -158,7 +160,7 @@ function ProductCard({ product, onBuy, index }) {
         {/* Pricing & CTA */}
         <div className="pt-3.5 border-t border-[#E5DCCF] flex items-center justify-between mt-auto">
           <div>
-            <div className="text-[10px] uppercase tracking-wider font-semibold text-[#8E9687]">Direct Farm Price</div>
+            <div className="text-[10px] uppercase tracking-wider font-semibold text-[#8E9687]">{t('marketplace.product.directFarmPrice')}</div>
             <div className="text-xl font-bold font-mono text-[#2D5A38]">
               ₹{product.price}
               <span className="text-xs font-normal text-[#6B7264]">/{product.unit}</span>
@@ -171,15 +173,15 @@ function ProductCard({ product, onBuy, index }) {
               className="flex items-center gap-1.5 bg-[#2D5A38] hover:bg-[#1E3D27] text-[#FAF7F2] font-semibold px-3.5 py-2 rounded-xl shadow-xs active:scale-95 transition-all text-xs cursor-pointer"
             >
               <ShoppingBag className="w-3.5 h-3.5" />
-              <span>Buy Direct</span>
+              <span>{t('marketplace.button.buyDirect')}</span>
             </button>
           ) : (
             <span
-              title={user ? 'Seller accounts list crops — use a separate buyer account to order.' : 'Login as a buyer to place orders.'}
+              title={user ? t('marketplace.tooltip.sellerOnly') : t('marketplace.tooltip.loginRequired')}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-[#E5DCCF] bg-[#FAF7F2] text-[#8E9687] text-xs font-semibold"
             >
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Selling only</span>
+              <span>{t('marketplace.button.sellingOnly')}</span>
             </span>
           )}
         </div>
@@ -194,7 +196,7 @@ function ProductCard({ product, onBuy, index }) {
             animate={{ opacity: 1, scale: 1 }}
             className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl max-h-[88vh] overflow-y-auto"
           >
-            <h3 className="text-xl font-bold text-[#232921] mb-4">Place Order</h3>
+            <h3 className="text-xl font-bold text-[#232921] mb-4">{t('order.modal.title')}</h3>
 
             <div className="space-y-3 mb-6">
               <div className="flex justify-between items-center p-3 bg-[#FAF7F2] rounded-xl">
@@ -204,20 +206,20 @@ function ProductCard({ product, onBuy, index }) {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-[#FAF7F2] p-3 rounded-xl">
-                  <span className="text-[10px] text-[#8E9687] uppercase font-semibold">Price</span>
+                  <span className="text-[10px] text-[#8E9687] uppercase font-semibold">{t('common.price')}</span>
                   <div className="text-lg font-bold text-[#2D5A38]">
                     ₹{product.price} <span className="text-xs">/{product.unit}</span>
                   </div>
                 </div>
                 <div className="bg-[#FAF7F2] p-3 rounded-xl">
-                  <span className="text-[10px] text-[#8E9687] uppercase font-semibold">Available</span>
+                  <span className="text-[10px] text-[#8E9687] uppercase font-semibold">{t('marketplace.product.available')}</span>
                   <div className="text-lg font-bold text-[#232921]">{product.stock}</div>
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs font-medium text-[#232921] mb-1.5">
-                  Quantity (in {product.unit})
+                  {t('order.modal.quantityIn')} {product.unit})
                 </label>
                 <input
                   type="number"
@@ -232,13 +234,13 @@ function ProductCard({ product, onBuy, index }) {
               {/* Delivery Address */}
               <div>
                 <label className="block text-xs font-medium text-[#232921] mb-1.5">
-                  Delivery Address
+                  {t('order.modal.deliveryAddress')}
                 </label>
                 <input
                   type="text"
                   value={deliveryAddress}
                   onChange={(e) => setDeliveryAddress(e.target.value)}
-                  placeholder="House no, street, city, state"
+                  placeholder={t('order.modal.addressPlaceholder')}
                   className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E5DCCF] rounded-xl text-sm font-medium text-[#232921] focus:outline-none focus:border-[#2D5A38] focus:bg-white"
                 />
                 <label className="mt-2 flex items-center gap-2 text-[11px] text-[#6B7264] cursor-pointer">
@@ -248,7 +250,7 @@ function ProductCard({ product, onBuy, index }) {
                     onChange={(e) => setSaveAddress(e.target.checked)}
                     className="accent-[#2D5A38]"
                   />
-                  Save this as my default delivery address
+                  {t('order.modal.saveAddressDefault')}
                 </label>
               </div>
 
@@ -290,7 +292,7 @@ function ProductCard({ product, onBuy, index }) {
               {/* Payment Method */}
               <div>
                 <label className="block text-xs font-medium text-[#232921] mb-1.5">
-                  Payment Method
+                  {t('payment.methodLabel')}
                 </label>
                 <div className="grid grid-cols-1 gap-1.5">
                   {PAYMENT_METHODS.map((m) => (
@@ -306,8 +308,8 @@ function ProductCard({ product, onBuy, index }) {
                     >
                       <span className="text-lg">{m.icon}</span>
                       <span className="flex-1">
-                        <span className="block text-sm font-semibold text-[#232921]">{m.label}</span>
-                        <span className="block text-[10px] text-[#6B7264]">{m.sub}</span>
+                        <span className="block text-sm font-semibold text-[#232921]">{t(m.labelKey)}</span>
+                        <span className="block text-[10px] text-[#6B7264]">{t(m.subKey)}</span>
                       </span>
                       <span className={`w-3.5 h-3.5 rounded-full border-2 ${
                         paymentMethod === m.id ? 'border-[#2D5A38] bg-[#2D5A38]' : 'border-[#D6CDBD]'
@@ -320,7 +322,7 @@ function ProductCard({ product, onBuy, index }) {
 
             <div className="flex items-center justify-between mb-6 pt-4 border-t border-[#E5DCCF]">
               <span className="text-[#6B7264] text-sm">
-                {paymentMethod !== 'cod' ? `Total Payable (${paymentMethod.toUpperCase()})` : 'Total (Cash on Delivery)'}
+                {paymentMethod !== 'cod' ? `${t('order.modal.totalPayableOnline')} (${paymentMethod.toUpperCase()})` : t('order.modal.totalPayableCod')}
               </span>
               <span className="text-2xl font-bold text-[#2D5A38]">₹{product.price * quantity}</span>
             </div>
@@ -330,14 +332,14 @@ function ProductCard({ product, onBuy, index }) {
                 onClick={() => setShowBuyModal(false)}
                 className="flex-1 py-2.5 px-4 bg-[#F2ECE1] hover:bg-[#E5DCCF] text-[#6B7264] rounded-xl text-sm font-semibold transition-colors"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handlePayAndOrder}
                 disabled={processing}
                 className="flex-1 py-2.5 px-4 bg-[#2D5A38] hover:bg-[#1E3D27] text-white rounded-xl text-sm font-semibold shadow-xs transition-all active:scale-95 disabled:opacity-60 cursor-pointer"
               >
-                {processing ? 'Processing payment…' : paymentMethod !== 'cod' ? 'Pay & Confirm Order' : 'Confirm Order (COD)'}
+                {processing ? t('order.button.processingPayment') : paymentMethod !== 'cod' ? t('order.button.payConfirm') : t('order.button.confirmCod')}
               </button>
               {error && <span className="text-xs text-red-600">{error}</span>}
             </div>
@@ -351,6 +353,7 @@ function ProductCard({ product, onBuy, index }) {
 
 export default function Marketplace() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const { user } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -407,7 +410,7 @@ export default function Marketplace() {
 
   const handleBuy = async (product) => {
     if (!user) {
-      alert('Please login first to place an order');
+      alert(t('marketplace.alert.loginRequired'));
       navigate('/login');
       return;
     }
@@ -422,17 +425,19 @@ export default function Marketplace() {
         delivery_lng: product.delivery_lng
       });
 
-      alert(`Order placed successfully! Payment: ${(product.payment_method || 'cod').toUpperCase()}`);
+      alert(`${t('marketplace.alert.orderSuccess')} ${(product.payment_method || 'cod').toUpperCase()}`);
       navigate('/orders');
     } catch (err) {
-      alert(`Failed to place order: ${err.message}`);
+      alert(`${t('marketplace.alert.orderFailed')} ${err.message}`);
     }
   };
 
-  const categories = ['All', 'Vegetables', 'Grains', 'Fruits', 'Dry Fruits'];
+  const categories = ['all', 'vegetables', 'grains', 'fruits', 'dryfruits'];
+
+  const categoryLabel = (c) => t('category.' + c);
 
   const filtered = products.filter(p => {
-    const matchesCategory = selectedCategory === 'All' || p.category === selectedCategory;
+    const matchesCategory = selectedCategory === 'all' || p.category === selectedCategory;
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           p.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           p.farmer.toLowerCase().includes(searchQuery.toLowerCase());
@@ -446,24 +451,24 @@ export default function Marketplace() {
         <div>
           <div className="flex items-center gap-1.5 text-xs font-semibold text-[#2D5A38] mb-1">
             <ShieldCheck className="w-4 h-4" />
-            <span>DIRECT FARM MANDI MARKETPLACE • 0% MIDDLEMAN COMMISSIONS</span>
+            <span>{t('marketplace.banner.subtag')}</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#232921] font-heading">
-            Farm-Fresh Mandi Harvests
+            {t('marketplace.banner.title')}
           </h1>
           <p className="text-xs sm:text-sm text-[#6B7264] mt-1">
-            Browse authentic lots directly from verified FPOs and local agricultural cooperatives.
+            {t('marketplace.banner.desc')}
           </p>
         </div>
 
         <div className="flex items-center gap-4 text-xs font-medium">
           <div className="bg-[#F2ECE1] px-3.5 py-2 rounded-xl border border-[#E5DCCF]">
-            <span className="text-[#8E9687] block text-[10px] uppercase font-mono">Verified FPOs</span>
-            <span className="text-sm font-bold text-[#2D5A38]">12 Active</span>
+            <span className="text-[#8E9687] block text-[10px] uppercase font-mono">{t('marketplace.banner.verifiedFPOs')}</span>
+            <span className="text-sm font-bold text-[#2D5A38]">{t('marketplace.banner.activeFPOs')}</span>
           </div>
           <div className="bg-[#F2ECE1] px-3.5 py-2 rounded-xl border border-[#E5DCCF]">
-            <span className="text-[#8E9687] block text-[10px] uppercase font-mono">Transit ETA</span>
-            <span className="text-sm font-bold text-[#232921]">Same Day</span>
+            <span className="text-[#8E9687] block text-[10px] uppercase font-mono">{t('marketplace.banner.transitEta')}</span>
+            <span className="text-sm font-bold text-[#232921]">{t('marketplace.banner.sameDay')}</span>
           </div>
         </div>
       </div>
@@ -482,7 +487,7 @@ export default function Marketplace() {
                   : 'bg-white text-[#6B7264] hover:text-[#232921] hover:bg-[#F2ECE1] border border-[#E5DCCF]'
               }`}
             >
-              {cat}
+              {categoryLabel(cat)}
             </button>
           ))}
         </div>
@@ -494,7 +499,7 @@ export default function Marketplace() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search crop, farmer, or district..."
+            placeholder={t('marketplace.search.placeholder')}
             className="w-full pl-9 pr-3 py-2 rounded-xl bg-white border border-[#E5DCCF] text-xs text-[#232921] placeholder-[#8E9687] focus:outline-none focus:border-[#2D5A38] transition-colors"
           />
         </div>
@@ -514,12 +519,12 @@ export default function Marketplace() {
 
       {filtered.length === 0 && (
         <div className="text-center py-12 bg-white rounded-2xl border border-[#E5DCCF]">
-          <p className="text-[#6B7264] text-sm">No farm harvests match your search criteria.</p>
+          <p className="text-[#6B7264] text-sm">{t('marketplace.empty.title')}</p>
           <button
-            onClick={() => { setSelectedCategory('All'); setSearchQuery(''); }}
+            onClick={() => { setSelectedCategory('all'); setSearchQuery(''); }}
             className="mt-2 text-xs font-semibold text-[#2D5A38] hover:underline"
           >
-            Clear Filters
+            {t('marketplace.empty.clearFilters')}
           </button>
         </div>
       )}
@@ -532,7 +537,7 @@ export default function Marketplace() {
             className="flex items-center gap-2 px-6 py-3 bg-[#2D5A38] hover:bg-[#1E3D27] text-white rounded-xl text-sm font-semibold transition-colors shadow-xs"
           >
             <ShoppingBag className="w-4 h-4" />
-            <span>My Orders</span>
+            <span>{t('marketplace.button.myOrders')}</span>
           </button>
         </div>
       )}

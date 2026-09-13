@@ -12,8 +12,10 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { api } from '../services/api';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function OrderTracking() {
+  const { t } = useLanguage();
   const [searchParams] = useSearchParams();
   const orderId = searchParams.get('orderId');
 
@@ -24,7 +26,7 @@ export default function OrderTracking() {
   useEffect(() => {
     const fetchOrder = async () => {
       if (!orderId) {
-        setError('No order ID provided');
+        setError(t('tracking.error.noOrderId'));
         setLoading(false);
         return;
       }
@@ -34,11 +36,11 @@ export default function OrderTracking() {
         if (response && response.order) {
           setOrder(response.order);
         } else {
-          setError('Order not found');
+          setError(t('tracking.error.notFound'));
         }
       } catch (err) {
         console.error('Failed to fetch order:', err);
-        setError('Failed to load order details');
+        setError(t('tracking.error.loadFailed'));
       } finally {
         setLoading(false);
       }
@@ -64,38 +66,38 @@ export default function OrderTracking() {
 
     return [
       {
-        title: "Order Confirmed",
-        desc: `Farm Origin: ${order.seller_name || 'Farm Producer'}`,
+        title: t('tracking.steps.orderConfirmed'),
+        desc: `${t('tracking.deliveryTo')}: ${order.seller_name || t('tracking.steps.farmOrigin')}`,
         time: new Date(order.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
         status: currentStep >= 0 ? 'completed' : 'upcoming',
         icon: Factory,
         details: `${order.crop} • ${order.quantity} ${order.unit || 'kg'}`
       },
       {
-        title: "Route Optimized & Dispatch Ready",
-        desc: route ? `Optimized Route: ${route.distance_km} km` : "Awaiting dispatch confirmation",
-        time: currentStep >= 1 ? new Date(order.updated_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : "Pending",
+        title: t('tracking.steps.dispatchReady'),
+        desc: route ? `${t('tracking.steps.optimizedRoute')} ${route.distance_km} km` : t('tracking.steps.awaitingDispatch'),
+        time: currentStep >= 1 ? new Date(order.updated_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : t('common.pending'),
         status: currentStep >= 1 ? 'completed' : currentStep === 0 ? 'current' : 'upcoming',
         icon: Route,
-        details: route ? `ETA: ${Math.round(route.estimated_time_min)} mins • Cost: ₹${route.cost}` : "Route optimization in progress",
+        details: route ? `${t('tracking.steps.etaCost')} ${Math.round(route.estimated_time_min)}${t('tracking.route.minutes')} • ₹${route.cost}` : t('tracking.steps.optimizing'),
         highlight: currentStep === 1
       },
       {
-        title: "In Transit",
-        desc: route && route.waypoints ? `Via: ${route.waypoints.slice(1, -1).join(' → ') || 'Direct Route'}` : "Direct delivery route",
-        time: currentStep >= 2 ? "Live Transit" : "Awaiting Shipment",
+        title: t('tracking.steps.inTransit'),
+        desc: route && route.waypoints ? `${t('tracking.steps.viaRoute')} ${route.waypoints.slice(1, -1).join(' → ') || t('tracking.steps.directRoute')}` : t('tracking.steps.directRoute'),
+        time: currentStep >= 2 ? t('tracking.steps.liveTransit') : t('tracking.steps.awaitingShipment'),
         status: currentStep >= 2 ? 'completed' : currentStep === 1 ? 'current' : 'upcoming',
         icon: Navigation,
         highlight: currentStep === 2,
-        details: route ? `${route.waypoints?.length || 2} waypoints optimized for fastest delivery` : "Multi-stop optimization active"
+        details: route ? `${route.waypoints?.length || 2} ${t('tracking.steps.waypointsOptimized')}` : t('tracking.steps.multiStopActive')
       },
       {
-        title: "Delivered",
-        desc: `Delivery to: ${order.buyer_name || 'Customer'}`,
-        time: currentStep >= 3 ? new Date(order.updated_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : "Estimated arrival",
+        title: t('tracking.steps.delivered'),
+        desc: `${t('tracking.steps.deliveryTo')} ${order.buyer_name || 'Customer'}`,
+        time: currentStep >= 3 ? new Date(order.updated_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : t('tracking.steps.estimatedArrival'),
         status: currentStep >= 3 ? 'completed' : currentStep === 2 ? 'current' : 'upcoming',
         icon: CheckCircle2,
-        details: "Contactless handover with OTP verification"
+        details: t('tracking.steps.otpVerification')
       }
     ];
   };
@@ -107,7 +109,7 @@ export default function OrderTracking() {
       <div className="py-8 max-w-4xl mx-auto">
         <div className="bg-white p-8 rounded-2xl border border-[#E5DCCF] shadow-xs text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2D5A38] mx-auto mb-4"></div>
-          <p className="text-[#6B7264]">Loading order details...</p>
+          <p className="text-[#6B7264]">{t('tracking.loading')}</p>
         </div>
       </div>
     );
@@ -119,19 +121,19 @@ export default function OrderTracking() {
         <div className="bg-white p-8 rounded-2xl border border-[#E5DCCF] shadow-xs text-center">
           <Truck className="w-16 h-16 text-[#E5DCCF] mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-[#232921] mb-2">
-            {error === 'No order ID provided' ? 'No Order Selected' : 'Order Not Found'}
+            {error === t('tracking.error.noOrderId') ? t('tracking.error.noOrderSelectedTitle') : t('tracking.error.notFoundTitle')}
           </h3>
           <p className="text-[#6B7264] mb-6">
-            {error === 'No order ID provided'
-              ? 'Please select an order from your orders page to view tracking details.'
-              : error || 'The order you are looking for could not be found.'}
+            {error === t('tracking.error.noOrderId')
+              ? t('tracking.error.noOrderSelectedDesc')
+              : error || t('tracking.error.notFoundDesc')}
           </p>
           <a
             href="/orders"
             className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#2D5A38] text-white rounded-xl text-sm font-semibold hover:bg-[#1E3D27] transition-colors"
           >
             <Package className="w-4 h-4" />
-            View My Orders
+            {t('tracking.button.viewMyOrders')}
           </a>
         </div>
       </div>
@@ -147,17 +149,17 @@ export default function OrderTracking() {
         <div>
           <div className="flex items-center gap-1.5 text-xs font-semibold text-[#2D5A38] mb-1">
             <Truck className="w-4 h-4" />
-            <span>LIVE CONSIGNMENT DISPATCH TRACKER</span>
+            <span>{t('tracking.banner.tagline')}</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#232921] font-heading">
-            Live Order & Logistics Status
+            {t('tracking.banner.title')}
           </h1>
         </div>
 
         <div className="flex items-center gap-2">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#E8F0E9] text-[#2D5A38] border border-[#C2D6C6]">
             <span className="w-2 h-2 rounded-full bg-[#2D5A38] animate-pulse" />
-            {order.status === 'shipped' ? 'GPS Satellite Linked' : 'Order Tracked'}
+            {order.status === 'shipped' ? t('tracking.badge.gpsLinked') : t('tracking.badge.tracked')}
           </span>
         </div>
       </div>
@@ -180,12 +182,12 @@ export default function OrderTracking() {
 
           <div className="flex items-center gap-6 sm:text-right">
             <div>
-              <div className="text-[10px] uppercase font-semibold text-[#8E9687]">Total Amount</div>
+              <div className="text-[10px] uppercase font-semibold text-[#8E9687]">{t('common.totalAmount')}</div>
               <div className="text-2xl font-bold font-mono text-[#2D5A38]">₹{order.total_price}</div>
             </div>
             <div className="h-8 w-px bg-[#E5DCCF] hidden sm:block" />
             <div className="text-left sm:text-right">
-              <div className="text-[10px] uppercase font-semibold text-[#8E9687]">Payment</div>
+              <div className="text-[10px] uppercase font-semibold text-[#8E9687]">{t('common.payment')}</div>
               <div className="text-xs font-semibold text-[#232921]">{order.payment_method?.toUpperCase() || 'COD'}</div>
             </div>
           </div>
@@ -200,19 +202,19 @@ export default function OrderTracking() {
               </div>
               <div className="flex-1">
                 <div className="text-xs font-bold text-[#232921] mb-1">
-                  AI-OPTIMIZED DELIVERY ROUTE
+                  {t('tracking.route.heading')}
                 </div>
                 <div className="grid grid-cols-3 gap-4 text-xs">
                   <div>
-                    <div className="text-[#8E9687] font-semibold">Distance</div>
+                    <div className="text-[#8E9687] font-semibold">{t('tracking.route.distance')}</div>
                     <div className="text-[#232921] font-bold">{route.distance_km} km</div>
                   </div>
                   <div>
-                    <div className="text-[#8E9687] font-semibold">Est. Time</div>
-                    <div className="text-[#232921] font-bold">{Math.round(route.estimated_time_min)} mins</div>
+                    <div className="text-[#8E9687] font-semibold">{t('tracking.route.estTime')}</div>
+                    <div className="text-[#232921] font-bold">{Math.round(route.estimated_time_min)}{t('tracking.route.minutes')}</div>
                   </div>
                   <div>
-                    <div className="text-[#8E9687] font-semibold">Logistics Cost</div>
+                    <div className="text-[#8E9687] font-semibold">{t('tracking.route.cost')}</div>
                     <div className="text-[#232921] font-bold">₹{route.cost}</div>
                   </div>
                 </div>
@@ -220,7 +222,7 @@ export default function OrderTracking() {
             </div>
             {route.waypoints && route.waypoints.length > 0 && (
               <div className="mt-3 pt-3 border-t border-[#E5DCCF]">
-                <div className="text-[10px] uppercase font-semibold text-[#8E9687] mb-2">Optimized Waypoints:</div>
+                <div className="text-[10px] uppercase font-semibold text-[#8E9687] mb-2">{t('tracking.route.waypointsLabel')}</div>
                 <div className="flex flex-wrap gap-2">
                   {route.waypoints.map((waypoint, idx) => (
                     <span key={idx} className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] bg-white border border-[#E5DCCF] text-[#232921]">
@@ -243,18 +245,18 @@ export default function OrderTracking() {
               </div>
               <div>
                 <div className="text-xs font-bold text-[#232921] flex items-center gap-2">
-                  DISPATCH ON SCHEDULE
-                  {route && <span className="text-[11px] font-semibold text-[#2D5A38]">(ETA: {Math.round(route.estimated_time_min)} mins)</span>}
+                  {t('tracking.dispatch.onSchedule')}
+                  {route && <span className="text-[11px] font-semibold text-[#2D5A38]">({t('tracking.dispatch.etaMins')} {Math.round(route.estimated_time_min)}{t('tracking.route.minutes')})</span>}
                 </div>
                 <div className="text-xs text-[#6B7264] mt-0.5">
-                  Your order is in transit via optimized route.
+                  {t('tracking.dispatch.inTransitDesc')}
                 </div>
               </div>
             </div>
 
             <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-[#E5DCCF] hover:border-[#2D5A38] text-xs font-semibold text-[#232921] transition-colors cursor-pointer shadow-xs">
               <PhoneCall className="w-3.5 h-3.5 text-[#2D5A38]" />
-              <span>Contact Support</span>
+              <span>{t('tracking.button.contactSupport')}</span>
             </button>
           </div>
         )}
@@ -298,7 +300,7 @@ export default function OrderTracking() {
                     <span className="text-[11px] text-[#8E9687]">[{step.time}]</span>
                     {step.highlight && (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-[#E8F0E9] text-[#2D5A38] border border-[#C2D6C6]">
-                        Direct Express
+                        {t('tracking.badge.directExpress')}
                       </span>
                     )}
                   </div>

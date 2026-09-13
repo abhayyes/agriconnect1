@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { api } from '../services/api';
 import RouteMap from '../components/RouteMap';
 import { useAuth } from '../App';
+import { useLanguage } from '../context/LanguageContext';
 
 const statusColors = {
   pending: 'bg-amber-50 text-amber-700 border-amber-200',
@@ -14,16 +15,9 @@ const statusColors = {
   cancelled: 'bg-red-50 text-red-700 border-red-200'
 };
 
-const statusLabels = {
-  pending: 'Pending',
-  confirmed: 'Confirmed',
-  shipped: 'Shipped',
-  delivered: 'Delivered',
-  cancelled: 'Cancelled'
-};
-
 export default function Orders() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const { user } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -56,10 +50,10 @@ export default function Orders() {
     try {
       await api.updateOrderStatus(orderId, status);
       await loadOrders();
-      alert(`Order ${status === 'cancelled' ? 'cancelled' : `marked as ${status}`}.`);
+      alert(`${t('orders.alert.statusUpdated')} ${status === 'cancelled' ? t('orders.dispatch.statusCancelled') : `${t('orders.dispatch.markedAs')} ${status}`}.`);
     } catch (err) {
       console.error('Failed to update order status:', err);
-      alert(`Failed to ${status} order: ${err.message}`);
+      alert(`${t('orders.alert.statusUpdateFailed')} ${status} order: ${err.message}`);
     } finally {
       setUpdating(false);
     }
@@ -87,12 +81,12 @@ export default function Orders() {
   if (!user) {
     return (
       <div className="text-center py-12">
-        <p className="text-[#6B7264] mb-4">Please login to view your orders</p>
+        <p className="text-[#6B7264] mb-4">{t('orders.auth.loginPrompt')}</p>
         <button
           onClick={() => navigate('/login')}
           className="px-6 py-2 bg-[#2D5A38] text-white rounded-xl text-sm font-semibold"
         >
-          Login
+          {t('orders.auth.login')}
         </button>
       </div>
     );
@@ -104,17 +98,17 @@ export default function Orders() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#232921] font-heading">
-            {isBuyer ? 'My Orders' : 'Orders Received'}
+            {isBuyer ? t('orders.heading.buyerTitle') : t('orders.heading.farmerTitle')}
           </h1>
           <p className="text-xs sm:text-sm text-[#6B7264] mt-1">
             {isBuyer
-              ? 'Track your farm-fresh produce orders'
-              : 'Orders placed by buyers on your listed harvests'}
+              ? t('orders.heading.buyerDesc')
+              : t('orders.heading.farmerDesc')}
           </p>
         </div>
         <div className="flex items-center gap-3">
           <div className="bg-white px-4 py-2 rounded-xl border border-[#E5DCCF] shadow-xs">
-            <span className="text-[10px] text-[#8E9687] uppercase font-semibold">Total Orders</span>
+            <span className="text-[10px] text-[#8E9687] uppercase font-semibold">{t('orders.stats.totalOrders')}</span>
             <div className="text-lg font-bold text-[#232921]">{orders.length}</div>
           </div>
         </div>
@@ -124,25 +118,25 @@ export default function Orders() {
       {orders.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-2xl border border-[#E5DCCF]">
           <ShoppingBag className="w-16 h-16 text-[#E5DCCF] mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-[#232921] mb-2">No orders yet</h3>
+          <h3 className="text-lg font-semibold text-[#232921] mb-2">{t('orders.empty.title')}</h3>
           <p className="text-[#6B7264] text-sm mb-6">
             {isBuyer
-              ? 'Browse the marketplace to place your first order'
-              : 'When buyers order from your listings, they will appear here'}
+              ? t('orders.empty.buyerDesc')
+              : t('orders.empty.farmerDesc')}
           </p>
           {isBuyer ? (
             <button
               onClick={() => navigate('/marketplace')}
               className="px-6 py-2.5 bg-[#2D5A38] text-white rounded-xl text-sm font-semibold shadow-xs hover:bg-[#1E3D27]"
             >
-              Browse Marketplace
+              {t('orders.button.browseMarketplace')}
             </button>
           ) : (
             <button
               onClick={() => navigate('/dashboard')}
               className="px-6 py-2.5 bg-[#2D5A38] text-white rounded-xl text-sm font-semibold shadow-xs hover:bg-[#1E3D27]"
             >
-              View My Listings
+              {t('orders.button.viewMyListings')}
             </button>
           )}
         </div>
@@ -169,9 +163,9 @@ export default function Orders() {
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-[#232921]">Order #{order.id.slice(0, 8)}</span>
+                        <span className="text-sm font-bold text-[#232921]">{t('orders.card.orderNumber')}{order.id.slice(0, 8)}</span>
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium border ${statusColors[order.status] || statusColors.pending}`}>
-                          {statusLabels[order.status] || order.status}
+                          {t('orders.status.' + order.status) || order.status}
                         </span>
                       </div>
                       <p className="text-xs text-[#6B7264] mt-0.5">
@@ -200,7 +194,7 @@ export default function Orders() {
                       <ShoppingBag className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="text-[10px] text-[#8E9687] uppercase font-semibold mb-0.5">Product</p>
+                      <p className="text-[10px] text-[#8E9687] uppercase font-semibold mb-0.5">{t('orders.card.product')}</p>
                       <p className="text-sm font-medium text-[#232921]">{order.crop}</p>
                       <p className="text-xs text-[#6B7264] mt-1">{order.quantity} {order.unit}</p>
                       {isBuyer && order.payment_method && (
@@ -211,7 +205,7 @@ export default function Orders() {
                         }`}>
                           {order.payment_method.toUpperCase()}
                           {' · '}
-                          {order.payment_status === 'paid' ? 'Paid' : 'Pay on delivery'}
+                          {order.payment_status === 'paid' ? t('orders.payment.paid') : t('orders.payment.cod')}
                         </span>
                       )}
                     </div>
@@ -223,7 +217,7 @@ export default function Orders() {
                     </div>
                     <div>
                       <p className="text-[10px] text-[#8E9687] uppercase font-semibold mb-0.5">
-                        {isBuyer ? 'Seller' : 'Buyer'}
+                        {isBuyer ? t('orders.card.sellerLabel') : t('orders.card.buyerLabel')}
                       </p>
                       <p className="text-sm font-medium text-[#232921]">
                         {isBuyer ? (order.seller_name || 'Farm') : (order.buyer_name || user.name)}
@@ -241,9 +235,9 @@ export default function Orders() {
                       <MapPin className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="text-[10px] text-[#8E9687] uppercase font-semibold mb-0.5">Delivery To</p>
+                      <p className="text-[10px] text-[#8E9687] uppercase font-semibold mb-0.5">{t('orders.card.deliveryTo')}</p>
                       <p className="text-sm font-medium text-[#232921]">
-                        {order.delivery_address || (isFarmer && order.buyer_location) || 'Address not provided'}
+                        {order.delivery_address || (isFarmer && order.buyer_location) || t('orders.card.addressNotProvided')}
                       </p>
                       {(order.route?.pickup_coords) && (
                         (() => {
@@ -266,11 +260,11 @@ export default function Orders() {
                       {order.route ? (
                         <p className="text-xs text-[#6B7264] mt-1">
                           🚛 {order.route.distance_km ? `${order.route.distance_km} km` : ''}
-                          {order.route.estimated_time_min ? ` · ~${order.route.estimated_time_min} min` : ''}
-                          {' · Route optimized via AI'}
+                          {order.route.estimated_time_min ? ` · ~${order.route.estimated_time_min}${t('common.minutes')}` : ''}
+                          {' · ' + t('orders.card.aiRouteOptimized')}
                         </p>
                       ) : (
-                        <p className="text-xs text-[#8E9687] mt-1">AI route assigned on confirm</p>
+                        <p className="text-xs text-[#8E9687] mt-1">{t('orders.card.aiRoutePending')}</p>
                       )}
                     </div>
                   </div>
@@ -279,10 +273,10 @@ export default function Orders() {
                 {/* Enhanced Dispatch Timeline */}
                 {order.status !== 'cancelled' && (() => {
                   const steps = [
-                    { key: 'pending',   icon: <Clock className="w-4 h-4" />,        label: 'Order Placed',  color: 'amber' },
-                    { key: 'confirmed', icon: <CheckCircle2 className="w-4 h-4" />, label: 'Confirmed',     color: 'blue'   },
-                    { key: 'shipped',   icon: <Ship className="w-4 h-4" />,         label: 'Shipped',       color: 'indigo' },
-                    { key: 'delivered', icon: <CheckCircle2 className="w-4 h-4" />, label: 'Delivered',     color: 'emerald' }
+                    { key: 'pending',   icon: <Clock className="w-4 h-4" />,        label: t('timeline.orderPlaced'),  color: 'amber' },
+                    { key: 'confirmed', icon: <CheckCircle2 className="w-4 h-4" />, label: t('timeline.confirmed'),     color: 'blue'   },
+                    { key: 'shipped',   icon: <Ship className="w-4 h-4" />,         label: t('timeline.shipped'),       color: 'indigo' },
+                    { key: 'delivered', icon: <CheckCircle2 className="w-4 h-4" />, label: t('timeline.delivered'),     color: 'emerald' }
                   ];
                   const currentIdx = steps.findIndex(s => s.key === order.status);
 
@@ -302,10 +296,10 @@ export default function Orders() {
                             <Ship className="w-5 h-5 text-indigo-600" />
                           </div>
                           <div>
-                            <p className="text-sm font-semibold text-indigo-800">Dispatch on the move</p>
+                            <p className="text-sm font-semibold text-indigo-800">{t('orders.dispatch.onTheMove')}</p>
                             <p className="text-xs text-indigo-600">
-                              Your order is on its way{order.delivery_address ? ` to ${order.delivery_address}` : ''}
-                              {order.route?.estimated_time_min ? ` — ETA ~${order.route.estimated_time_min} min` : ''}
+                              {t('orders.dispatch.onItsWay')}{order.delivery_address ? ` ${order.delivery_address}` : ''}
+                              {order.route?.estimated_time_min ? ` — ${t('tracking.dispatch.etaMins')} ~${order.route.estimated_time_min}${t('common.minutes')}` : ''}
                             </p>
                           </div>
                         </div>
@@ -318,11 +312,11 @@ export default function Orders() {
                             <MapPin className="w-5 h-5 text-blue-600" />
                           </div>
                           <div>
-                            <p className="text-sm font-semibold text-blue-800">AI Optimized Route</p>
+                            <p className="text-sm font-semibold text-blue-800">{t('orders.dispatch.aiRoute')}</p>
                             <p className="text-xs text-blue-600">
                               {order.route.distance_km ? `${order.route.distance_km} km` : ''}
-                              {order.route.estimated_time_min ? ` · ETA ${order.route.estimated_time_min} min` : ''}
-                              {order.route.waypoints?.length ? ` · ${order.route.waypoints.length} stops` : ''}
+                              {order.route.estimated_time_min ? ` · ${t('tracking.dispatch.etaMins')} ${order.route.estimated_time_min}${t('common.minutes')}` : ''}
+                              {order.route.waypoints?.length ? ` · ${order.route.waypoints.length}${t('orders.dispatch.stops')}` : ''}
                             </p>
                           </div>
                         </div>
@@ -354,10 +348,10 @@ export default function Orders() {
                                 </p>
                                 <p className="text-xs text-[#8E9687]">
                                   {isCurrent
-                                    ? (idx === 0 ? 'Now' : 'Current step')
+                                    ? (idx === 0 ? t('timeline.now') : t('timeline.currentStep'))
                                     : reached
-                                      ? 'Done'
-                                      : 'Waiting'
+                                      ? t('timeline.done')
+                                      : t('timeline.waiting')
                                   }
                                 </p>
                               </div>
@@ -377,7 +371,7 @@ export default function Orders() {
                     className="px-4 py-2 bg-white text-[#2D5A38] border border-[#2D5A38] rounded-xl text-xs font-semibold hover:bg-[#E8F0E9] transition-colors cursor-pointer flex items-center gap-2"
                   >
                     <MapPin className="w-3.5 h-3.5" />
-                    Track Order {order.route && '& View Route'}
+                    {t('orders.trackOrder')} {order.route && t('orders.viewRoute')}
                   </button>
 
                   {/* Status action buttons */}
@@ -389,7 +383,7 @@ export default function Orders() {
                           disabled={updating}
                           className="px-4 py-2 bg-[#2D5A38] text-white rounded-xl text-xs font-semibold hover:bg-[#1E3D27] transition-colors disabled:opacity-50 cursor-pointer"
                         >
-                          Confirm Order
+                          {t('orders.confirmOrder')}
                         </button>
                       )}
                       {isFarmer && order.status === 'confirmed' && (
@@ -398,7 +392,7 @@ export default function Orders() {
                           disabled={updating}
                           className="px-4 py-2 bg-[#2D5A38] text-white rounded-xl text-xs font-semibold hover:bg-[#1E3D27] transition-colors disabled:opacity-50 cursor-pointer"
                         >
-                          Mark Shipped
+                          {t('orders.markShipped')}
                         </button>
                       )}
                       {isFarmer && order.status === 'shipped' && (
@@ -407,7 +401,7 @@ export default function Orders() {
                           disabled={updating}
                           className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-semibold hover:bg-emerald-700 transition-colors disabled:opacity-50 cursor-pointer"
                         >
-                          Mark Delivered
+                          {t('orders.markDelivered')}
                         </button>
                       )}
                       {(isBuyer && order.status === 'pending') || (isFarmer && (order.status === 'pending' || order.status === 'confirmed')) ? (
@@ -416,7 +410,7 @@ export default function Orders() {
                           disabled={updating}
                           className="px-4 py-2 bg-white text-[#991B1B] border border-red-200 rounded-xl text-xs font-semibold hover:bg-red-50 transition-colors disabled:opacity-50 cursor-pointer"
                         >
-                          Cancel Order
+                          {t('orders.cancelOrder')}
                         </button>
                       ) : null}
                     </div>
