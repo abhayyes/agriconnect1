@@ -289,46 +289,58 @@ export default function Orders() {
                 )}
 
                 {/* Role-based actions */}
-                {order.status !== 'delivered' && order.status !== 'cancelled' && (
-                  <div className="mt-4 pt-4 border-t border-[#E5DCCF] flex flex-wrap justify-end gap-2">
-                    {isFarmer && order.status === 'pending' && (
-                      <button
-                        onClick={() => handleStatusChange(order.id, 'confirmed')}
-                        disabled={updating}
-                        className="px-4 py-2 bg-[#2D5A38] text-white rounded-xl text-xs font-semibold hover:bg-[#1E3D27] transition-colors disabled:opacity-50 cursor-pointer"
-                      >
-                        Confirm Order
-                      </button>
-                    )}
-                    {isFarmer && order.status === 'confirmed' && (
-                      <button
-                        onClick={() => handleStatusChange(order.id, 'shipped')}
-                        disabled={updating}
-                        className="px-4 py-2 bg-[#2D5A38] text-white rounded-xl text-xs font-semibold hover:bg-[#1E3D27] transition-colors disabled:opacity-50 cursor-pointer"
-                      >
-                        Mark Shipped
-                      </button>
-                    )}
-                    {isFarmer && order.status === 'shipped' && (
-                      <button
-                        onClick={() => handleStatusChange(order.id, 'delivered')}
-                        disabled={updating}
-                        className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-semibold hover:bg-emerald-700 transition-colors disabled:opacity-50 cursor-pointer"
-                      >
-                        Mark Delivered
-                      </button>
-                    )}
-                    {(isBuyer && order.status === 'pending') || (isFarmer && (order.status === 'pending' || order.status === 'confirmed')) ? (
-                      <button
-                        onClick={() => handleStatusChange(order.id, 'cancelled')}
-                        disabled={updating}
-                        className="px-4 py-2 bg-white text-[#991B1B] border border-red-200 rounded-xl text-xs font-semibold hover:bg-red-50 transition-colors disabled:opacity-50 cursor-pointer"
-                      >
-                        Cancel Order
-                      </button>
-                    ) : null}
-                  </div>
-                )}
+                <div className="mt-4 pt-4 border-t border-[#E5DCCF] flex flex-wrap justify-between items-center gap-2">
+                  {/* Track Order Button - always visible */}
+                  <button
+                    onClick={() => navigate(`/order-tracking?orderId=${order.id}`)}
+                    className="px-4 py-2 bg-white text-[#2D5A38] border border-[#2D5A38] rounded-xl text-xs font-semibold hover:bg-[#E8F0E9] transition-colors cursor-pointer flex items-center gap-2"
+                  >
+                    <MapPin className="w-3.5 h-3.5" />
+                    Track Order {order.route && '& View Route'}
+                  </button>
+
+                  {/* Status action buttons */}
+                  {order.status !== 'delivered' && order.status !== 'cancelled' && (
+                    <div className="flex flex-wrap gap-2">
+                      {isFarmer && order.status === 'pending' && (
+                        <button
+                          onClick={() => handleStatusChange(order.id, 'confirmed')}
+                          disabled={updating}
+                          className="px-4 py-2 bg-[#2D5A38] text-white rounded-xl text-xs font-semibold hover:bg-[#1E3D27] transition-colors disabled:opacity-50 cursor-pointer"
+                        >
+                          Confirm Order
+                        </button>
+                      )}
+                      {isFarmer && order.status === 'confirmed' && (
+                        <button
+                          onClick={() => handleStatusChange(order.id, 'shipped')}
+                          disabled={updating}
+                          className="px-4 py-2 bg-[#2D5A38] text-white rounded-xl text-xs font-semibold hover:bg-[#1E3D27] transition-colors disabled:opacity-50 cursor-pointer"
+                        >
+                          Mark Shipped
+                        </button>
+                      )}
+                      {isFarmer && order.status === 'shipped' && (
+                        <button
+                          onClick={() => handleStatusChange(order.id, 'delivered')}
+                          disabled={updating}
+                          className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-semibold hover:bg-emerald-700 transition-colors disabled:opacity-50 cursor-pointer"
+                        >
+                          Mark Delivered
+                        </button>
+                      )}
+                      {(isBuyer && order.status === 'pending') || (isFarmer && (order.status === 'pending' || order.status === 'confirmed')) ? (
+                        <button
+                          onClick={() => handleStatusChange(order.id, 'cancelled')}
+                          disabled={updating}
+                          className="px-4 py-2 bg-white text-[#991B1B] border border-red-200 rounded-xl text-xs font-semibold hover:bg-red-50 transition-colors disabled:opacity-50 cursor-pointer"
+                        >
+                          Cancel Order
+                        </button>
+                      ) : null}
+                    </div>
+                  )}
+                </div>
               </div>
             </motion.div>
           ))}
