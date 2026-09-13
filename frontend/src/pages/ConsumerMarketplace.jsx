@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Filter, ShoppingBag, MapPin, ShieldCheck, Search, Tag, ArrowRight, CheckCircle2, SlidersHorizontal, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -35,6 +35,9 @@ function ProductCard({ product, onBuy, index }) {
   const [routePreview, setRoutePreview] = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState('');
+  const [previewAttempt, setPreviewAttempt] = useState(0);
+  const [geocoding, setGeocoding] = useState(false);
+  const [geoError, setGeoError] = useState('');
 
   // Lock body scroll while the buy modal is open. The modal manages its own
   // internal scrolling, so the page behind must stay still.
@@ -65,14 +68,46 @@ function ProductCard({ product, onBuy, index }) {
         setRoutePreview(data);
       } catch (e) {
         setRoutePreview(null);
-        setPreviewError('Could not calculate route.');
+        setPreviewError('Could not calculate route right now. Tap again to retry.');
       } finally {
         setPreviewLoading(false);
       }
     }, 500);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deliveryLat, deliveryLng, quantity]);
+  }, [deliveryLat, deliveryLng, quantity, previewAttempt]);
+
+  // Keep the map pin in sync with the typed delivery address. Debounced so we
+  // don't hammer the geocoder on every keystroke; clearing the pin when the
+  // address is emptied, and only pinning when the address is long enough to be
+  // meaningful. The manual "Find on map" button below is the instant trigger.
+  const pinAddress = useCallback(async (addr) => {
+    const text = (addr || '').trim();
+    if (text.length < 4) return;
+    setGeocoding(true);
+    setGeoError('');
+    try {
+      const g = await api.geocode(text);
+      if (g && g.lat != null && g.lng != null) {
+        setDeliveryLat(g.lat);
+        setDeliveryLng(g.lng);
+      }
+    } catch (e) {
+      setGeoError('Could not find this address on the map. Try the map instead.');
+    } finally {
+      setGeocoding(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!deliveryAddress || !deliveryAddress.trim()) {
+      setGeoError('');
+      return;
+    }
+    const t = setTimeout(() => pinAddress(deliveryAddress), 1200);
+    return () => clearTimeout(t);
+  }, [deliveryAddress, pinAddress]);
 
   const handlePayAndOrder = async () => {
     if (!deliveryAddress.trim()) {
@@ -236,13 +271,25 @@ function ProductCard({ product, onBuy, index }) {
                 <label className="block text-xs font-medium text-[#232921] mb-1.5">
                   {t('order.modal.deliveryAddress')}
                 </label>
-                <input
-                  type="text"
-                  value={deliveryAddress}
-                  onChange={(e) => setDeliveryAddress(e.target.value)}
-                  placeholder={t('order.modal.addressPlaceholder')}
-                  className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E5DCCF] rounded-xl text-sm font-medium text-[#232921] focus:outline-none focus:border-[#2D5A38] focus:bg-white"
-                />
+<div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={deliveryAddress}
+                    onChange={(e) => setDeliveryAddress(e.target.value)}
+                    placeholder={t('order.modal.addressPlaceholder') || 'House no, street, city, state'}
+                    className="flex-1 px-3 py-2 bg-[#FAF7F2] border border-[#E5DCCF] rounded-xl text-sm font-medium text-[#232921] focus:outline-none focus:border-[#2D5A38] focus:bg-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => pinAddress(deliveryAddress)}
+                    disabled={geocoding || !deliveryAddress.trim()}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#E8F0E9] border border-[#C2D6C6] text-[#2D5A38] rounded-xl text-xs font-semibold hover:bg-[#DCE9DE] transition-colors disabled:opacity-50 cursor-pointer shrink-0"
+                  >
+                    <MapPin className="w-3.5 h-3.5" />
+                    {geocoding ? 'Finding…' : 'Find on map'}
+                  </button>
+                </div>
+                {geoError && <p className="text-[11px] text-amber-600 mt-1">{geoError}</p>}
                 <label className="mt-2 flex items-center gap-2 text-[11px] text-[#6B7264] cursor-pointer">
                   <input
                     type="checkbox"
@@ -273,7 +320,7 @@ function ProductCard({ product, onBuy, index }) {
                   {previewLoading && (
                     <p className="text-[11px] text-[#6B7264] flex items-center gap-1.5">
                       <span className="inline-block w-3 h-3 border-2 border-[#2D5A38] border-t-transparent rounded-full animate-spin" />
-                      Calculating best route…
+                      Calculating best route (first time can take up to a minute)…
                     </p>
                   )}
                   {!previewLoading && routePreview && (
@@ -284,7 +331,16 @@ function ProductCard({ product, onBuy, index }) {
                     </div>
                   )}
                   {!previewLoading && previewError && (
-                    <p className="text-[11px] text-amber-600">{previewError}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-[11px] text-amber-600">{previewError}</p>
+                      <button
+                        type="button"
+                        onClick={() => { setPreviewError(''); setPreviewLoading(true); setPreviewAttempt(a => a + 1); }}
+                        className="text-[11px] font-semibold text-[#2D5A38] underline"
+                      >
+                        Retry
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>

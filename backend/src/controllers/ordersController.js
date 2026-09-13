@@ -1,5 +1,12 @@
 const pool = require('../config/db');
 
+// Long timeout for AI service calls. Render's free tier spins the service down
+// after ~15 min of inactivity; a cold start can take 50s+ before OSRM runs. A
+// short timeout aborts every route call after a sleep (showing "route
+// optimization in progress" forever / "could not calculate route"). This must
+// comfortably cover cold start + OSRM latency.
+const AI_SERVICE_TIMEOUT_MS = 90000;
+
 // Helper: Call AI service for route optimization
 async function optimizeRoute(orderData) {
   const AI_SERVICE_URL = process.env.AI_SERVICE_URL;
@@ -10,12 +17,19 @@ async function optimizeRoute(orderData) {
   }
 
   try {
-    const response = await fetch(`${AI_SERVICE_URL}/optimize-route`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(orderData),
-      signal: AbortSignal.timeout(5000) // 5s timeout
-    });
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), AI_SERVICE_TIMEOUT_MS);
+    let response;
+    try {
+      response = await fetch(`${AI_SERVICE_URL}/optimize-route`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderData),
+        signal: controller.signal
+      });
+    } finally {
+      clearTimeout(timer);
+    }
 
     if (!response.ok) {
       console.error(`AI service returned ${response.status}`);
@@ -483,6 +497,56 @@ async function previewRoute(req, res, next) {
   }
 }
 
+// POST /api/orders/geocode
+// Resolves a typed delivery address string to map coordinates so the frontend
+// can pin it on the map and keep the address field and map in sync. Uses the
+// OpenStreetMap Nominatim geocoder (free, no key). Served server-side to avoid
+// CORS/rate-limit issues from the browser.
+async function geocodeAddress(req, res, next) {
+  try {
+    const { address } = req.body;
+    if (!address || !address.trim()) {
+      return res.status(400).json({ error: 'address is required' });
+    }
+
+    const q = encodeURIComponent(address.trim());
+    const url = `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1&countrycodes=in`;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10000);
+
+    let resp;
+    try {
+      resp = await fetch(url, {
+        headers: {
+          'User-Agent': 'AgriConnect/1.0 (order delivery geocoder; https://agriconnect.in)',
+          'Accept-Language': 'en'
+        },
+        signal: controller.signal
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+
+    if (!resp.ok) {
+      return res.status(502).json({ error: 'Geocoding service unavailable' });
+    }
+
+    const results = await resp.json();
+    if (!Array.isArray(results) || results.length === 0) {
+      return res.status(404).json({ error: 'Address not found on map' });
+    }
+
+    const r = results[0];
+    res.status(200).json({
+      lat: parseFloat(r.lat),
+      lng: parseFloat(r.lon),
+      display_name: r.display_name || null
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // GET /api/orders/dashboard/demand-forecast
 // Farmer-only: returns AI-predicted demand for their listings
 async function getDemandForecast(req, res, next) {
@@ -513,5 +577,6 @@ module.exports = {
   updateOrder,
   updateOrderStatus,
   previewRoute,
+  geocodeAddress,
   getDemandForecast
 };

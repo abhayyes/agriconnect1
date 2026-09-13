@@ -22,6 +22,7 @@ export default function Orders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [updatingFor, setUpdatingFor] = useState(null);
 
   const isFarmer = user?.role === 'farmer' || user?.role === 'fpo';
   const isBuyer = user?.role === 'consumer' || user?.role === 'bulk_buyer';
@@ -47,6 +48,7 @@ export default function Orders() {
 
   const handleStatusChange = async (orderId, status) => {
     setUpdating(true);
+    setUpdatingFor(orderId);
     try {
       await api.updateOrderStatus(orderId, status);
       await loadOrders();
@@ -56,6 +58,7 @@ export default function Orders() {
       alert(`${t('orders.alert.statusUpdateFailed')} ${status} order: ${err.message}`);
     } finally {
       setUpdating(false);
+      setUpdatingFor(null);
     }
   };
 
@@ -381,9 +384,14 @@ export default function Orders() {
                         <button
                           onClick={() => handleStatusChange(order.id, 'confirmed')}
                           disabled={updating}
-                          className="px-4 py-2 bg-[#2D5A38] text-white rounded-xl text-xs font-semibold hover:bg-[#1E3D27] transition-colors disabled:opacity-50 cursor-pointer"
+                          className="px-4 py-2 bg-[#2D5A38] text-white rounded-xl text-xs font-semibold hover:bg-[#1E3D27] transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-2"
                         >
-                          {t('orders.confirmOrder')}
+{updating && updatingFor === order.id ? (
+                            <>
+                              <span className="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                              Calculating route…
+                            </>
+                          ) : t('orders.confirmOrder')}
                         </button>
                       )}
                       {isFarmer && order.status === 'confirmed' && (

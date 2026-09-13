@@ -195,6 +195,19 @@ export const api = {
     }
   },
 
+  // Geocode a typed delivery address to map coordinates (pin on map)
+  geocode: async (address) => {
+    try {
+      return await api.request('/api/orders/geocode', {
+        method: 'POST',
+        body: JSON.stringify({ address })
+      });
+    } catch (err) {
+      console.error('Geocode failed:', err.message);
+      throw err;
+    }
+  },
+
   updateOrderStatus: async (orderId, status) => {
     try {
       return await api.request(`/api/orders/${orderId}/status`, {

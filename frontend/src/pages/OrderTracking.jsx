@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { api } from '../services/api';
+import RouteMap from '../components/RouteMap';
 import { useLanguage } from '../context/LanguageContext';
 
 export default function OrderTracking() {
@@ -142,6 +143,14 @@ export default function OrderTracking() {
 
   const route = order.route ? (typeof order.route === 'string' ? JSON.parse(order.route) : order.route) : null;
 
+  // Resolve delivery coords: prefer the order's stored map pin, else the
+  // route's delivery coords (for orders that predate the stored-pin feature).
+  const deliveryCoords =
+    (order.delivery_lat != null && order.delivery_lng != null)
+      ? { lat: Number(order.delivery_lat), lng: Number(order.delivery_lng) }
+      : route?.delivery_coords || null;
+  const showMap = route && route.pickup_coords && deliveryCoords;
+
   return (
     <div className="py-2 max-w-4xl mx-auto space-y-6">
       {/* Header Banner */}
@@ -222,15 +231,35 @@ export default function OrderTracking() {
             </div>
             {route.waypoints && route.waypoints.length > 0 && (
               <div className="mt-3 pt-3 border-t border-[#E5DCCF]">
-                <div className="text-[10px] uppercase font-semibold text-[#8E9687] mb-2">{t('tracking.route.waypointsLabel')}</div>
-                <div className="flex flex-wrap gap-2">
-                  {route.waypoints.map((waypoint, idx) => (
-                    <span key={idx} className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] bg-white border border-[#E5DCCF] text-[#232921]">
-                      <MapPin className="w-3 h-3 text-[#2D5A38]" />
-                      {waypoint}
-                    </span>
-                  ))}
+<div className="text-[10px] uppercase font-semibold text-[#8E9687] mb-2">Delivery Stops ({route.waypoints.length}):</div>
+                <div className="flex flex-col gap-1.5">
+                  {route.waypoints.map((waypoint, idx) => {
+                    const isPickup = idx === 0;
+                    const isFinal = idx === route.waypoints.length - 1;
+                    return (
+                      <div key={idx} className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg bg-white border border-[#E5DCCF]">
+                        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
+                          isPickup ? 'bg-[#2D5A38] text-white' : isFinal ? 'bg-[#C0392B] text-white' : 'bg-[#E8F0E9] text-[#2D5A38]'
+                        }`}>{idx + 1}</span>
+                        <span className="text-[11px] text-[#232921] flex-1">{waypoint}</span>
+                        <span className={`text-[9px] font-semibold uppercase shrink-0 ${isPickup ? 'text-[#2D5A38]' : isFinal ? 'text-[#C0392B]' : 'text-[#8E9687]'}`}>
+                          {isPickup ? 'Pickup' : isFinal ? 'Delivery' : `Stop ${idx}`}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
+              </div>
+            )}
+            {showMap && (
+              <div className="mt-3 pt-3 border-t border-[#E5DCCF]">
+                <div className="text-[10px] uppercase font-semibold text-[#8E9687] mb-2">Route Path on Map:</div>
+                <RouteMap
+                  pickup={{ ...route.pickup_coords, label: 'Farm Pickup' }}
+                  delivery={{ ...deliveryCoords, label: order.delivery_address || 'Delivery' }}
+                  polyline={route.polyline || null}
+                  height={260}
+                />
               </div>
             )}
           </div>

@@ -7,6 +7,7 @@ const {
   updateOrder,
   updateOrderStatus,
   previewRoute,
+  geocodeAddress,
   getDemandForecast
 } = require('../controllers/ordersController');
 const { requireAuth } = require('../middleware/auth');
