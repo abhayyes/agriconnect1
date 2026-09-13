@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Package, CheckCircle2, Clock, Ship, User, MapPin, ShoppingBag } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { api } from '../services/api';
+import RouteMap from '../components/RouteMap';
 import { useAuth } from '../App';
 
 const statusColors = {
@@ -244,6 +245,24 @@ export default function Orders() {
                       <p className="text-sm font-medium text-[#232921]">
                         {order.delivery_address || (isFarmer && order.buyer_location) || 'Address not provided'}
                       </p>
+                      {(order.route?.pickup_coords) && (
+                        (() => {
+                          const delC = (order.delivery_lat != null && order.delivery_lng != null)
+                            ? { lat: Number(order.delivery_lat), lng: Number(order.delivery_lng) }
+                            : order.route.delivery_coords;
+                          if (!delC) return null;
+                          return (
+                            <div className="mt-2">
+                              <RouteMap
+                                pickup={{ ...order.route.pickup_coords, label: 'Farm Pickup' }}
+                                delivery={{ ...delC, label: order.delivery_address || 'Delivery' }}
+                                polyline={order.route.polyline || null}
+                                height={200}
+                              />
+                            </div>
+                          );
+                        })()
+                      )}
                       {order.route ? (
                         <p className="text-xs text-[#6B7264] mt-1">
                           🚛 {order.route.distance_km ? `${order.route.distance_km} km` : ''}

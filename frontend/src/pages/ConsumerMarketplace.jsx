@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Filter, ShoppingBag, MapPin, ShieldCheck, Search, Tag, ArrowRight, CheckCircle2, SlidersHorizontal, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { api } from '../services/api';
+import DeliveryMapPicker from '../components/DeliveryMapPicker';
 import { useAuth } from '../App';
 
 const PAYMENT_METHODS = [
@@ -26,6 +27,13 @@ function ProductCard({ product, onBuy, index }) {
   const [deliveryAddress, setDeliveryAddress] = useState(user?.delivery_address || user?.location || '');
   const [saveAddress, setSaveAddress] = useState(true);
 
+  // Map-delivery pin + live route preview
+  const [deliveryLat, setDeliveryLat] = useState(null);
+  const [deliveryLng, setDeliveryLng] = useState(null);
+  const [routePreview, setRoutePreview] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState('');
+
   // Lock body scroll while the buy modal is open. The modal manages its own
   // internal scrolling, so the page behind must stay still.
   useEffect(() => {
@@ -35,9 +43,42 @@ function ProductCard({ product, onBuy, index }) {
     return () => { document.body.style.overflow = prevOverflow; };
   }, [showBuyModal]);
 
+  // Debounced live route preview: recompute whenever the buyer pins a delivery
+  // point or changes quantity, so the map reflects the current best route.
+  useEffect(() => {
+    if (!deliveryLat || !deliveryLng) {
+      setRoutePreview(null);
+      return;
+    }
+    setPreviewLoading(true);
+    setPreviewError('');
+    const t = setTimeout(async () => {
+      try {
+        const data = await api.previewRoute({
+          pickup_location: product.location || 'AgriConnect Mandi',
+          delivery_lat: deliveryLat,
+          delivery_lng: deliveryLng,
+          quantity
+        });
+        setRoutePreview(data);
+      } catch (e) {
+        setRoutePreview(null);
+        setPreviewError('Could not calculate route.');
+      } finally {
+        setPreviewLoading(false);
+      }
+    }, 500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deliveryLat, deliveryLng, quantity]);
+
   const handlePayAndOrder = async () => {
     if (!deliveryAddress.trim()) {
       setError('Please enter a delivery address.');
+      return;
+    }
+    if (!deliveryLat || !deliveryLng) {
+      setError('Please pin your delivery location on the map.');
       return;
     }
     setError('');
@@ -55,7 +96,14 @@ function ProductCard({ product, onBuy, index }) {
         console.warn('Could not save delivery address to profile:', e.message);
       }
     }
-    onBuy({ ...product, quantity, payment_method: paymentMethod, delivery_address: deliveryAddress });
+    onBuy({
+      ...product,
+      quantity,
+      payment_method: paymentMethod,
+      delivery_address: deliveryAddress,
+      delivery_lat: deliveryLat,
+      delivery_lng: deliveryLng
+    });
     setShowBuyModal(false);
   };
 
@@ -204,6 +252,41 @@ function ProductCard({ product, onBuy, index }) {
                 </label>
               </div>
 
+              {/* Delivery Location Map */}
+              <div>
+                <label className="block text-xs font-medium text-[#232921] mb-1.5">
+                  Delivery Location (map)
+                </label>
+                <DeliveryMapPicker
+                  markerPosition={deliveryLat && deliveryLng ? [deliveryLat, deliveryLng] : null}
+                  onPositionChange={(lat, lng) => {
+                    setDeliveryLat(lat);
+                    setDeliveryLng(lng);
+                  }}
+                  height={190}
+                />
+
+                {/* Live route preview */}
+                <div className="mt-2">
+                  {previewLoading && (
+                    <p className="text-[11px] text-[#6B7264] flex items-center gap-1.5">
+                      <span className="inline-block w-3 h-3 border-2 border-[#2D5A38] border-t-transparent rounded-full animate-spin" />
+                      Calculating best route…
+                    </p>
+                  )}
+                  {!previewLoading && routePreview && (
+                    <div className="flex items-center gap-3 text-xs font-semibold text-[#2D5A38] bg-[#E8F0E9] px-3 py-2 rounded-xl">
+                      <span>🚛 {routePreview.distance_km} km</span>
+                      <span>⏱ ~{routePreview.estimated_time_min} min</span>
+                      <span>₹{routePreview.cost} delivery</span>
+                    </div>
+                  )}
+                  {!previewLoading && previewError && (
+                    <p className="text-[11px] text-amber-600">{previewError}</p>
+                  )}
+                </div>
+              </div>
+
               {/* Payment Method */}
               <div>
                 <label className="block text-xs font-medium text-[#232921] mb-1.5">
@@ -334,7 +417,9 @@ export default function Marketplace() {
         listing_id: product.id,
         quantity: product.quantity,
         payment_method: product.payment_method || 'cod',
-        delivery_address: product.delivery_address
+        delivery_address: product.delivery_address,
+        delivery_lat: product.delivery_lat,
+        delivery_lng: product.delivery_lng
       });
 
       alert(`Order placed successfully! Payment: ${(product.payment_method || 'cod').toUpperCase()}`);

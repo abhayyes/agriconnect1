@@ -68,6 +68,8 @@ CREATE TABLE orders (
   status        order_status NOT NULL DEFAULT 'pending',
   route         JSONB,
   delivery_address VARCHAR(500),
+  delivery_lat  DOUBLE PRECISION,
+  delivery_lng  DOUBLE PRECISION,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );

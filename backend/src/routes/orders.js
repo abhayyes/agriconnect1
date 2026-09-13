@@ -6,6 +6,7 @@ const {
   getOrderById,
   updateOrder,
   updateOrderStatus,
+  previewRoute,
   getDemandForecast
 } = require('../controllers/ordersController');
 const { requireAuth } = require('../middleware/auth');
@@ -16,6 +17,9 @@ router.get('/', requireAuth, getOrders);
 
 // POST /api/orders - consumer/bulk_buyer only
 router.post('/', requireAuth, requireRole('consumer', 'bulk_buyer'), createOrder);
+
+// POST /api/orders/preview-route - live map route preview for the buy modal
+router.post('/preview-route', requireAuth, previewRoute);
 
 // GET /api/orders/dashboard/demand-forecast - farmer/fpo only
 router.get('/dashboard/demand-forecast', requireAuth, getDemandForecast);

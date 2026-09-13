@@ -78,6 +78,8 @@ CREATE TABLE IF NOT EXISTS orders (
   status        order_status NOT NULL DEFAULT 'pending',
   route         JSONB,
   delivery_address VARCHAR(500),
+  delivery_lat  DOUBLE PRECISION,
+  delivery_lng  DOUBLE PRECISION,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -90,6 +92,9 @@ CREATE INDEX IF NOT EXISTS idx_orders_status     ON orders(status);
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_method VARCHAR(30) NOT NULL DEFAULT 'cod';
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_status VARCHAR(30) NOT NULL DEFAULT 'pending';
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_address VARCHAR(500);
+-- Map-delivery coordinates (buyer's pinned delivery point, idempotent)
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_lat DOUBLE PRECISION;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_lng DOUBLE PRECISION;
 
 -- Auto-update updated_at timestamp
 CREATE OR REPLACE FUNCTION set_updated_at()

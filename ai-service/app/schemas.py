@@ -60,3 +60,7 @@ class OptimizeRouteResponse(BaseModel):
     estimated_time_min: float
     waypoints: List[Union[str, Dict[str, Any], LatLng]]
     cost: float
+    # Drawable route geometry for map rendering
+    pickup_coords: Optional[LatLng] = None
+    delivery_coords: Optional[LatLng] = None
+    polyline: Optional[List[LatLng]] = None  # ordered road geometry (OSRM), null on fallback

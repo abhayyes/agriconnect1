@@ -117,7 +117,8 @@ async function createOrder(req, res, next) {
   try {
     const {
       listing_id, quantity, price_per_unit, crop, unit,
-      payment_method, payment_status, delivery_address
+      payment_method, payment_status, delivery_address,
+      delivery_lat, delivery_lng
     } = req.body;
 
     if (!quantity || quantity <= 0) {
@@ -208,12 +209,18 @@ async function createOrder(req, res, next) {
       payStatus = 'paid';
     }
 
+    // Normalize the buyer's map-pinned delivery coordinates (valid numbers only)
+    const parsedLat = delivery_lat !== undefined && delivery_lat !== null && !Number.isNaN(parseFloat(delivery_lat))
+      ? parseFloat(delivery_lat) : null;
+    const parsedLng = delivery_lng !== undefined && delivery_lng !== null && !Number.isNaN(parseFloat(delivery_lng))
+      ? parseFloat(delivery_lng) : null;
+
     // Create order with 'pending' status
     const orderResult = await pool.query(
-      `INSERT INTO orders (buyer_id, listing_id, quantity, total_price, status, payment_method, payment_status, delivery_address)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO orders (buyer_id, listing_id, quantity, total_price, status, payment_method, payment_status, delivery_address, delivery_lat, delivery_lng)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING *`,
-      [req.user.id, actualListingId, quantity, total_price, 'pending', method, payStatus, resolvedAddress]
+      [req.user.id, actualListingId, quantity, total_price, 'pending', method, payStatus, resolvedAddress, parsedLat, parsedLng]
     );
 
     const order = orderResult.rows[0];
@@ -403,13 +410,20 @@ async function updateOrderStatus(req, res, next) {
       return res.status(403).json({ error: 'Only the seller can transition to this status' });
     }
 
-    // AI integration: optimize route when order is confirmed
+    // AI integration: optimize route when order is confirmed.
+    // Pickup = the listing's location string (the farmer's area). Delivery =
+    // the buyer's map-pinned coordinates stored on the order; fall back to the
+    // delivery address string for orders placed before the map feature.
     let route = null;
     if (status === 'confirmed' && !order.route) {
+      const deliveryCoords =
+        order.delivery_lat != null && order.delivery_lng != null
+          ? { lat: Number(order.delivery_lat), lng: Number(order.delivery_lng) }
+          : (order.delivery_address || undefined);
       route = await optimizeRoute({
         orderId: order.id,
         pickup: order.pickup_location,
-        delivery: order.delivery_location,
+        delivery: deliveryCoords,
         quantity: order.quantity
       });
     }
@@ -434,6 +448,36 @@ async function updateOrderStatus(req, res, next) {
     }
 
     res.status(200).json({ order: result.rows[0] });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// POST /api/orders/preview-route
+// Live route preview for the buy modal. Given the seller's pickup area (listing
+// location) and a buyer-pinned delivery coordinate, calls the AI service for a
+// real road-optimized route (distance/ETA/cost + polyline) and returns it.
+// Keeps AI_SERVICE_URL private to the backend.
+async function previewRoute(req, res, next) {
+  try {
+    const { pickup_location, delivery_lat, delivery_lng, quantity } = req.body;
+    const lat = parseFloat(delivery_lat);
+    const lng = parseFloat(delivery_lng);
+    if (Number.isNaN(lat) || Number.isNaN(lng)) {
+      return res.status(400).json({ error: 'delivery_lat and delivery_lng are required' });
+    }
+
+    const route = await optimizeRoute({
+      pickup: pickup_location || 'AgriConnect Mandi',
+      delivery: { lat, lng },
+      quantity: parseFloat(quantity) || 1
+    });
+
+    if (!route) {
+      return res.status(503).json({ error: 'Route optimization service unavailable' });
+    }
+
+    res.status(200).json(route);
   } catch (err) {
     next(err);
   }
@@ -468,5 +512,6 @@ module.exports = {
   getOrderById,
   updateOrder,
   updateOrderStatus,
+  previewRoute,
   getDemandForecast
 };

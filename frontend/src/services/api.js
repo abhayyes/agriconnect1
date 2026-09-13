@@ -182,6 +182,19 @@ export const api = {
     }
   },
 
+  // Live map route preview (pickup area -> buyer-pinned delivery coords)
+  previewRoute: async (data) => {
+    try {
+      return await api.request('/api/orders/preview-route', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+    } catch (err) {
+      console.error('Route preview failed:', err.message);
+      throw err;
+    }
+  },
+
   updateOrderStatus: async (orderId, status) => {
     try {
       return await api.request(`/api/orders/${orderId}/status`, {

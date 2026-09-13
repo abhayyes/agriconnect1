@@ -75,6 +75,48 @@ AVG_SPEED_KMH = 45.0
 COST_PER_KM = 5.0  # INR per km average logistics transport rate
 DISTANCE_SCALE = 1000
 
+# OSRM public routing endpoint (no API key required). Server-side only.
+# If unreachable, the service falls back to Haversine straight-line math.
+OSRM_BASE = "https://router.project-osrm.org/route/v1/driving"
+OSRM_TIMEOUT = 5
+
+
+def osrm_route(coords: List[LatLng]) -> Optional[Dict[str, Any]]:
+    """
+    Query OSRM for a real drivable road polyline between an ordered list of
+    coordinates. Returns None on any failure (network, timeout, non-200) so the
+    caller can safely fall back to the Haversine estimate.
+
+    OSRM expects coordinates as `lng,lat;lng,lat...` (longitude first, per
+    GeoJSON convention), and returns `geometry.coordinates` as `[lng, lat]`
+    pairs, which we reverse into Leaflet-style `{lat, lng}`.
+    """
+    if not coords or len(coords) < 2:
+        return None
+    coord_str = ";".join(f"{c.lng},{c.lat}" for c in coords)
+    url = f"{OSRM_BASE}/{coord_str}?overview=full&geometries=geojson"
+    try:
+        resp = requests.get(url, timeout=OSRM_TIMEOUT)
+        if resp.status_code != 200:
+            logger.warning("OSRM returned status %s", resp.status_code)
+            return None
+        data = resp.json()
+        routes = data.get("routes") or []
+        if not routes:
+            return None
+        route = routes[0]
+        geometry = route.get("geometry") or {}
+        coordinates = geometry.get("coordinates") or []
+        polyline = [LatLng(lat=float(p[1]), lng=float(p[0])) for p in coordinates] if coordinates else None
+        return {
+            "distance_m": route.get("distance"),
+            "duration_s": route.get("duration"),
+            "polyline": polyline,
+        }
+    except Exception as exc:  # noqa: BLE001 - OSRM is best-effort; log and fall back
+        logger.warning("OSRM request failed, falling back to Haversine: %s", exc)
+        return None
+
 
 def geocode_location(location: Union[str, LatLng, Dict[str, Any]]) -> LatLng:
     """Resolve location string or object to LatLng coordinates."""
@@ -189,9 +231,23 @@ def optimize_delivery_route(
     # Estimated delivery cost (INR)
     cost = round(road_km * COST_PER_KM + (quantity * 2.0), 1)
 
+    # Try OSRM for a real drivable road polyline + road distance/ETA.
+    # On any failure, keep the Haversine estimate (polyline stays None).
+    polyline = None
+    if osrm_result := osrm_route(ordered_points):
+        if osrm_result.get("distance_m"):
+            road_km = max(1.0, osrm_result["distance_m"] / 1000.0)
+        if osrm_result.get("duration_s"):
+            eta_min = osrm_result["duration_s"] / 60.0
+        cost = round(road_km * COST_PER_KM + (quantity * 2.0), 1)
+        polyline = osrm_result.get("polyline")
+
     return OptimizeRouteResponse(
         distance_km=round(road_km, 1),
         estimated_time_min=round(eta_min, 0),
         waypoints=formatted_waypoints,
-        cost=cost
+        cost=cost,
+        pickup_coords=p_coord,
+        delivery_coords=d_coord,
+        polyline=polyline,
     )
