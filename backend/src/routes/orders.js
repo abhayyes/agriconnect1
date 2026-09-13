@@ -22,6 +22,9 @@ router.post('/', requireAuth, requireRole('consumer', 'bulk_buyer'), createOrder
 // POST /api/orders/preview-route - live map route preview for the buy modal
 router.post('/preview-route', requireAuth, previewRoute);
 
+// POST /api/orders/geocode - resolve typed address to map coordinates
+router.post('/geocode', requireAuth, geocodeAddress);
+
 // GET /api/orders/dashboard/demand-forecast - farmer/fpo only
 router.get('/dashboard/demand-forecast', requireAuth, getDemandForecast);
 
