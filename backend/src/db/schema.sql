@@ -15,6 +15,7 @@ CREATE TABLE users (
   role          user_role NOT NULL,
   phone         VARCHAR(20),
   location      VARCHAR(255),
+  delivery_address VARCHAR(500),
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -66,6 +67,7 @@ CREATE TABLE orders (
   total_price   NUMERIC(12,2) NOT NULL CHECK (total_price >= 0),
   status        order_status NOT NULL DEFAULT 'pending',
   route         JSONB,
+  delivery_address VARCHAR(500),
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );

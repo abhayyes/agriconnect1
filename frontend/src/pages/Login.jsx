@@ -59,7 +59,9 @@ export default function Login() {
     };
 
     try {
-      const response = await api.login(credentials);
+      const response = mode === 'REGISTER'
+        ? await api.register(credentials)
+        : await api.login(credentials);
       const authUser = {
         ...response.user,
         token: response.token

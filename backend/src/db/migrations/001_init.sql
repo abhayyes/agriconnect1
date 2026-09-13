@@ -18,12 +18,16 @@ CREATE TABLE IF NOT EXISTS users (
   role          user_role NOT NULL,
   phone         VARCHAR(20),
   location      VARCHAR(255),
+  delivery_address VARCHAR(500),
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_role  ON users(role);
+
+-- Profile delivery address (idempotent for existing tables)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS delivery_address VARCHAR(500);
 
 -- LISTINGS
 DO $$ BEGIN
@@ -73,6 +77,7 @@ CREATE TABLE IF NOT EXISTS orders (
   total_price   NUMERIC(12,2) NOT NULL CHECK (total_price >= 0),
   status        order_status NOT NULL DEFAULT 'pending',
   route         JSONB,
+  delivery_address VARCHAR(500),
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -84,6 +89,7 @@ CREATE INDEX IF NOT EXISTS idx_orders_status     ON orders(status);
 -- Payment fields (idempotent for existing tables)
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_method VARCHAR(30) NOT NULL DEFAULT 'cod';
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_status VARCHAR(30) NOT NULL DEFAULT 'pending';
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_address VARCHAR(500);
 
 -- Auto-update updated_at timestamp
 CREATE OR REPLACE FUNCTION set_updated_at()

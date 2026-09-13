@@ -14,21 +14,48 @@ const PAYMENT_METHODS = [
 ];
 
 function ProductCard({ product, onBuy, index }) {
+  const { user } = useAuth();
+  // Roles are strictly separate: only a buyer account (consumer / bulk_buyer)
+  // can place an order. Farmer/FPO accounts are sellers and cannot buy.
+  const isBuyer = user && (user.role === 'consumer' || user.role === 'bulk_buyer');
   const [showBuyModal, setShowBuyModal] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState('upi');
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
+  const [deliveryAddress, setDeliveryAddress] = useState(user?.delivery_address || user?.location || '');
+  const [saveAddress, setSaveAddress] = useState(true);
+
+  // Lock body scroll while the buy modal is open. The modal manages its own
+  // internal scrolling, so the page behind must stay still.
+  useEffect(() => {
+    if (!showBuyModal) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prevOverflow; };
+  }, [showBuyModal]);
 
   const handlePayAndOrder = async () => {
+    if (!deliveryAddress.trim()) {
+      setError('Please enter a delivery address.');
+      return;
+    }
+    setError('');
     if (paymentMethod !== 'cod' && !processing) {
       setProcessing(true);
-      setError('');
       // Simulate a payment gateway call for demo purposes
       await new Promise(r => setTimeout(r, 1200));
       setProcessing(false);
     }
-    onBuy({ ...product, quantity, payment_method: paymentMethod });
+    // Persist the address to the buyer's profile if requested
+    if (saveAddress && deliveryAddress.trim()) {
+      try {
+        await api.updateProfile({ delivery_address: deliveryAddress });
+      } catch (e) {
+        console.warn('Could not save delivery address to profile:', e.message);
+      }
+    }
+    onBuy({ ...product, quantity, payment_method: paymentMethod, delivery_address: deliveryAddress });
     setShowBuyModal(false);
   };
 
@@ -90,23 +117,34 @@ function ProductCard({ product, onBuy, index }) {
             </div>
           </div>
 
-          <button
-            onClick={() => setShowBuyModal(true)}
-            className="flex items-center gap-1.5 bg-[#2D5A38] hover:bg-[#1E3D27] text-[#FAF7F2] font-semibold px-3.5 py-2 rounded-xl shadow-xs active:scale-95 transition-all text-xs cursor-pointer"
-          >
-            <ShoppingBag className="w-3.5 h-3.5" />
-            <span>Buy Direct</span>
-          </button>
+          {isBuyer ? (
+            <button
+              onClick={() => setShowBuyModal(true)}
+              className="flex items-center gap-1.5 bg-[#2D5A38] hover:bg-[#1E3D27] text-[#FAF7F2] font-semibold px-3.5 py-2 rounded-xl shadow-xs active:scale-95 transition-all text-xs cursor-pointer"
+            >
+              <ShoppingBag className="w-3.5 h-3.5" />
+              <span>Buy Direct</span>
+            </button>
+          ) : (
+            <span
+              title={user ? 'Seller accounts list crops — use a separate buyer account to order.' : 'Login as a buyer to place orders.'}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-[#E5DCCF] bg-[#FAF7F2] text-[#8E9687] text-xs font-semibold"
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>Selling only</span>
+            </span>
+          )}
         </div>
       </motion.div>
 
       {/* Buy Modal */}
       {showBuyModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="min-h-full flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl"
+            className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl max-h-[88vh] overflow-y-auto"
           >
             <h3 className="text-xl font-bold text-[#232921] mb-4">Place Order</h3>
 
@@ -141,6 +179,29 @@ function ProductCard({ product, onBuy, index }) {
                   onChange={(e) => setQuantity(Math.max(1, Math.min(e.target.value, product.stockNumber)))}
                   className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E5DCCF] rounded-xl text-sm font-bold text-[#232921] focus:outline-none focus:border-[#2D5A38] focus:bg-white"
                 />
+              </div>
+
+              {/* Delivery Address */}
+              <div>
+                <label className="block text-xs font-medium text-[#232921] mb-1.5">
+                  Delivery Address
+                </label>
+                <input
+                  type="text"
+                  value={deliveryAddress}
+                  onChange={(e) => setDeliveryAddress(e.target.value)}
+                  placeholder="House no, street, city, state"
+                  className="w-full px-3 py-2 bg-[#FAF7F2] border border-[#E5DCCF] rounded-xl text-sm font-medium text-[#232921] focus:outline-none focus:border-[#2D5A38] focus:bg-white"
+                />
+                <label className="mt-2 flex items-center gap-2 text-[11px] text-[#6B7264] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={saveAddress}
+                    onChange={(e) => setSaveAddress(e.target.checked)}
+                    className="accent-[#2D5A38]"
+                  />
+                  Save this as my default delivery address
+                </label>
               </div>
 
               {/* Payment Method */}
@@ -198,6 +259,7 @@ function ProductCard({ product, onBuy, index }) {
               {error && <span className="text-xs text-red-600">{error}</span>}
             </div>
           </motion.div>
+          </div>
         </div>
       )}
     </>
@@ -209,92 +271,10 @@ export default function Marketplace() {
   const { user } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
-  const [products, setProducts] = useState([
-    {
-      id: 1,
-      name: "Organic Vine Tomatoes",
-      farmer: "Ramesh Kumar (Kisan FPO)",
-      location: "Ludhiana, Punjab",
-      price: 35,
-      unit: "kg",
-      stock: "500 kg",
-      stockNumber: 500,
-      isDirect: true,
-      organic: true,
-      emoji: "🍅",
-      category: "Vegetables"
-    },
-    {
-      id: 2,
-      name: "Golden Sharbati Wheat",
-      farmer: "Malwa Agri Cooperative",
-      location: "Karnal, Haryana",
-      price: 28,
-      unit: "kg",
-      stock: "1,200 kg",
-      stockNumber: 1200,
-      isDirect: true,
-      organic: true,
-      emoji: "🌾",
-      category: "Grains"
-    },
-    {
-      id: 3,
-      name: "Aromatic Basmati Rice",
-      farmer: "Suresh Singh Rawat",
-      location: "Bareilly, UP",
-      price: 85,
-      unit: "kg",
-      stock: "850 kg",
-      stockNumber: 850,
-      isDirect: true,
-      organic: false,
-      emoji: "🍚",
-      category: "Grains"
-    },
-    {
-      id: 4,
-      name: "Nashik Red Onions",
-      farmer: "Sahyadri Farmers Collective",
-      location: "Nashik, Maharashtra",
-      price: 24,
-      unit: "kg",
-      stock: "2,000 kg",
-      stockNumber: 2000,
-      isDirect: true,
-      organic: false,
-      emoji: "🧅",
-      category: "Vegetables"
-    },
-    {
-      id: 5,
-      name: "Himachal Royal Gala Apples",
-      farmer: "Devbhoomi Orchard FPO",
-      location: "Shimla, HP",
-      price: 130,
-      unit: "kg",
-      stock: "400 kg",
-      stockNumber: 400,
-      isDirect: true,
-      organic: true,
-      emoji: "🍎",
-      category: "Fruits"
-    },
-    {
-      id: 6,
-      name: "Kashmiri Walnuts (In Shell)",
-      farmer: "Gulmarg Valley Growers",
-      location: "Anantnag, J&K",
-      price: 340,
-      unit: "kg",
-      stock: "150 kg",
-      stockNumber: 150,
-      isDirect: true,
-      organic: true,
-      emoji: "🥜",
-      category: "Dry Fruits"
-    }
-  ]);
+  // Products load from real backend listings (getProducts) keyed to different
+  // farmers. Starts empty — no hardcoded sample crops, so buyers only ever see
+  // actual listings (demo crops exist only as real DB rows for demo accounts).
+  const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [orders, setOrders] = useState([]);
 
@@ -302,7 +282,7 @@ export default function Marketplace() {
   useEffect(() => {
     const loadListings = async () => {
       try {
-        const data = await api.getProducts();
+        const data = await api.getProducts({ status: 'active' });
         if (data.listings && data.listings.length > 0) {
           const formatted = data.listings.map(l => ({
             id: l.id,
@@ -353,7 +333,8 @@ export default function Marketplace() {
       const order = await api.createOrder({
         listing_id: product.id,
         quantity: product.quantity,
-        payment_method: product.payment_method || 'cod'
+        payment_method: product.payment_method || 'cod',
+        delivery_address: product.delivery_address
       });
 
       alert(`Order placed successfully! Payment: ${(product.payment_method || 'cod').toUpperCase()}`);

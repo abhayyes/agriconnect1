@@ -197,7 +197,7 @@ export default function Marketplace() {
 
   useEffect(() => {
     // Attempt to load products from backend
-    api.getProducts()
+    api.getProducts({ status: 'active' })
       .then((res) => {
         const remoteListings = res?.listings;
         if (Array.isArray(remoteListings) && remoteListings.length > 0) {

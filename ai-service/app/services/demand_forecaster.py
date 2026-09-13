@@ -86,6 +86,13 @@ class DemandForecaster:
         historical_quantities = []
         historical_prices = list(given_historical_prices or [])
 
+        # When the caller didn't supply an explicit price series, pull the real
+        # seasonal price history from the price_history table. This makes the
+        # forecast use the seeded seasonal mandi price curve instead of relying
+        # only on order history / mock CSV data.
+        if not historical_prices:
+            historical_prices = self._fetch_db_price_history(crop_clean)
+
         # Check DB order history if provided
         if farmer_orders_df is not None and not farmer_orders_df.empty:
             crop_orders = farmer_orders_df[farmer_orders_df["crop"].str.lower() == crop_key]
@@ -158,6 +165,22 @@ class DemandForecaster:
             historical_points_used=len(historical_quantities),
             data_sparse=data_sparse
         )
+
+    def _fetch_db_price_history(self, crop: str) -> List[float]:
+        """
+        Return recent seasonal price points for a crop from the DB price_history table.
+        Sort chronologically and return the trailing series so the seasonal curve fits.
+        """
+        try:
+            df = get_crop_price_history(crop)
+            if df is None or df.empty:
+                return []
+            df = df.sort_values("recorded_at")
+            prices = df["price"].dropna().tolist()
+            return [float(p) for p in prices[-24:]]
+        except Exception as e:
+            logger.warning(f"Failed to read price history for {crop}: {e}")
+            return []
 
     def forecast_for_farmer(self, farmer_id: Optional[str] = None) -> List[CropDemandForecast]:
         """
