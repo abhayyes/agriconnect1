@@ -7,7 +7,8 @@ import {
   Factory,
   Navigation,
   PhoneCall,
-  Route
+  Route,
+  Package
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { api } from '../services/api';
@@ -116,8 +117,22 @@ export default function OrderTracking() {
     return (
       <div className="py-8 max-w-4xl mx-auto">
         <div className="bg-white p-8 rounded-2xl border border-[#E5DCCF] shadow-xs text-center">
-          <p className="text-red-600 mb-4">{error || 'Order not found'}</p>
-          <a href="/orders" className="text-[#2D5A38] hover:underline">← Back to Orders</a>
+          <Truck className="w-16 h-16 text-[#E5DCCF] mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-[#232921] mb-2">
+            {error === 'No order ID provided' ? 'No Order Selected' : 'Order Not Found'}
+          </h3>
+          <p className="text-[#6B7264] mb-6">
+            {error === 'No order ID provided'
+              ? 'Please select an order from your orders page to view tracking details.'
+              : error || 'The order you are looking for could not be found.'}
+          </p>
+          <a
+            href="/orders"
+            className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#2D5A38] text-white rounded-xl text-sm font-semibold hover:bg-[#1E3D27] transition-colors"
+          >
+            <Package className="w-4 h-4" />
+            View My Orders
+          </a>
         </div>
       </div>
     );

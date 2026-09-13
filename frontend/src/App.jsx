@@ -197,6 +197,7 @@ export default function App() {
               } />
               <Route path="/orders" element={<Orders />} />
               <Route path="/tracking" element={<Tracking />} />
+              <Route path="/order-tracking" element={<Tracking />} />
             </Routes>
           </main>
 
