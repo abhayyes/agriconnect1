@@ -103,27 +103,14 @@ export default function FarmerDashboard() {
     }
   };
 
-  const handleReactivateListing = async () => {
-    if (!adjustItem) return;
-    setAdjusting(true);
-    try {
-      await api.updateListing(adjustItem.rawId, { status: 'active' });
-      await loadMyListings();
-      setShowAdjustModal(false);
-      setAdjustItem(null);
-    } catch (err) {
-      alert(`Failed to reactivate listing: ${err.message}`);
-    } finally {
-      setAdjusting(false);
-    }
-  };
-
   // Load this farmer's real listings and orders from the backend
   const loadMyListings = async () => {
     try {
       const data = await api.getProducts({ status: 'all' });
       if (user?.id && data.listings) {
-        const mine = data.listings.filter(l => l.farmer_id === user.id);
+        // Studio mirrors the marketplace: removed (inactive) crops must not
+        // appear here. Only active listings are shown.
+        const mine = data.listings.filter(l => l.farmer_id === user.id && l.status === 'active');
         setInventoryItems(mine.map(listingToInventory));
       }
     } catch (err) {
@@ -572,25 +559,14 @@ export default function FarmerDashboard() {
                 </div>
 
                 <div className="pt-2 flex justify-between">
-                  {adjustItem.rawStatus === 'active' ? (
-                    <button
-                      onClick={handleRemoveListing}
-                      disabled={adjusting}
-                      className="px-3 py-2 rounded-xl bg-white text-[#991B1B] border border-red-200 text-xs font-semibold hover:bg-red-50 transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      Remove Listing
-                    </button>
-                  ) : (
-                    <button
-                      onClick={handleReactivateListing}
-                      disabled={adjusting}
-                      className="px-3 py-2 rounded-xl bg-white text-[#2D5A38] border border-[#C2D6C6] text-xs font-semibold hover:bg-[#E8F0E9] transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      Reactivate Listing
-                    </button>
-                  )}
+                  <button
+                    onClick={handleRemoveListing}
+                    disabled={adjusting}
+                    className="px-3 py-2 rounded-xl bg-white text-[#991B1B] border border-red-200 text-xs font-semibold hover:bg-red-50 transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Remove Listing
+                  </button>
                   <div className="flex gap-2">
                     <button
                       onClick={() => { setShowAdjustModal(false); setAdjustItem(null); }}
