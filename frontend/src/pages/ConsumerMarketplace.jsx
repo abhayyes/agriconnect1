@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Filter, ShoppingBag, MapPin, ShieldCheck, Search, Tag, ArrowRight, CheckCircle2, SlidersHorizontal, RefreshCw } from 'lucide-react';
+import { Filter, ShoppingBag, MapPin, ShieldCheck, Search, Tag, ArrowRight, CheckCircle2, SlidersHorizontal, RefreshCw, Flame } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { api } from '../services/api';
 import DeliveryMapPicker from '../components/DeliveryMapPicker';
@@ -454,6 +454,9 @@ export default function Marketplace() {
   const [userCoords, setUserCoords] = useState(null);
   const [locating, setLocating] = useState(false);
   const [maxPrice, setMaxPrice] = useState(0); // 0 = no price cap
+  // AI demand forecast for the mandi market (best-effort, non-blocking).
+  const [demandItems, setDemandItems] = useState([]);
+  const [demandLoading, setDemandLoading] = useState(true);
 
   // Map a crop name to a broad category so the filter pills actually match.
   const CROP_CATEGORY = {
@@ -546,6 +549,24 @@ export default function Marketplace() {
     loadListings();
   }, [sort, userCoords]);
 
+  // Load the AI demand forecast once on mount. Non-blocking: the banner simply
+  // hides if the forecast service is unavailable.
+  useEffect(() => {
+    let mounted = true;
+    api.getMarketDemand()
+      .then((res) => {
+        if (!mounted) return;
+        const list = (res?.forecast || [])
+          .slice()
+          .sort((a, b) => (b.predicted_demand || 0) - (a.predicted_demand || 0))
+          .slice(0, 6);
+        setDemandItems(list);
+        setDemandLoading(false);
+      })
+      .catch(() => { if (mounted) setDemandLoading(false); });
+    return () => { mounted = false; };
+  }, []);
+
   // Load user's orders
   useEffect(() => {
     const loadOrders = async () => {
@@ -626,6 +647,45 @@ export default function Marketplace() {
           </div>
         </div>
       </div>
+
+      {/* High Demand Now — AI demand forecast */}
+      {!demandLoading && demandItems.length > 0 && (
+        <div className="bg-(--moss) border border-(--line) rounded-2xl p-4">
+          <div className="flex items-center gap-2 mb-2.5">
+            <Flame className="w-4 h-4 text-(--earth)" />
+            <h2 className="text-sm font-bold text-(--ink) font-heading">
+              {t('marketplace.demandForecast')}
+            </h2>
+            <span className="text-[10px] font-semibold text-(--muted) bg-(--subtle) px-2 py-0.5 rounded border border-(--line)">
+              {t('marketplace.demandPeriod')}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+            {demandItems.map((d, i) => (
+              <div key={d.crop + i} className="bg-(--card) border border-(--line) rounded-xl p-3">
+                <div className="flex items-center justify-between gap-1">
+                  <span className="text-[11px] font-bold text-(--ink) truncate">{d.crop}</span>
+                  <span className="text-[10px] font-semibold text-(--earth) shrink-0">#{i + 1}</span>
+                </div>
+                <div className="mt-1.5 text-base font-bold font-mono text-(--leaf)">
+                  {Math.round(d.predicted_demand)}
+                  <span className="text-[10px] font-medium text-(--muted) ml-0.5">kg</span>
+                </div>
+                <div className="mt-1 h-1 bg-(--line) rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-(--leaf) rounded-full"
+                    style={{ width: `${Math.min(100, Math.round((d.predicted_demand / (demandItems[0].predicted_demand || 1)) * 100))}%` }}
+                  />
+                </div>
+                <div className="mt-1 flex items-center justify-between text-[9px] text-(--muted)">
+                  <span>{t('marketplace.demandConfidence')}</span>
+                  <span className="font-semibold">{Math.round((d.confidence || 0) * 100)}%</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Filter and Search Bar */}
       <div className="flex flex-col gap-3">

@@ -201,6 +201,16 @@ export const api = {
     return await api.request(`/api/orders/price-forecast${q}`, { method: 'GET' });
   },
 
+  // Consumer-facing market-wide demand forecast for the mandi market
+  getMarketDemand: async () => {
+    try {
+      return await api.request('/api/orders/demand-forecast', { method: 'GET' });
+    } catch (err) {
+      console.error('Demand forecast failed:', err.message);
+      return { forecast: null };
+    }
+  },
+
   // Geocode a typed delivery address to map coordinates (pin on map)
   geocode: async (address) => {
     try {

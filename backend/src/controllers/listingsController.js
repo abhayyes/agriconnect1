@@ -242,7 +242,7 @@ async function createListing(req, res, next) {
 async function updateListing(req, res, next) {
   try {
     const { id } = req.params;
-    const { crop, variety, quantity, unit, price_per_unit, status, location } = req.body;
+    const { crop, variety, quantity, unit, price_per_unit, status, location, lat, lng } = req.body;
 
     // First verify the listing exists and user owns it
     const existing = await pool.query(
@@ -330,9 +330,17 @@ async function updateListing(req, res, next) {
     );
     const listing = result.rows[0];
 
-    // Best-effort: if the farm location changed, refresh the stored coords so
-    // "nearest listing" sorting stays accurate.
-    if (location !== undefined) {
+    // Best-effort: refresh the stored coords so "nearest listing" sorting and
+    // the route origin stay accurate. Prefer the map-pinned lat/lng sent from
+    // the Adjust modal; fall back to geocoding a changed location string.
+    const provided = lat != null && lng != null && isFinite(Number(lat)) && isFinite(Number(lng));
+    if (provided) {
+      try {
+        await pool.query('UPDATE listings SET lat = $1, lng = $2 WHERE id = $3', [Number(lat), Number(lng), id]);
+        listing.lat = Number(lat);
+        listing.lng = Number(lng);
+      } catch (err) { /* non-fatal */ }
+    } else if (location !== undefined && location) {
       const coords = await geocodeLocation(location);
       if (coords) {
         try {

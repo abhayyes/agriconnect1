@@ -39,7 +39,9 @@ function listingToInventory(l, t) {
     rawQuantity: Number(l.quantity),
     rawUnit: l.unit || 'kg',
     rawVariety: l.variety || 'Grade A+',
-    rawStatus: l.status || 'active'
+    rawStatus: l.status || 'active',
+    rawLat: l.lat != null ? Number(l.lat) : null,
+    rawLng: l.lng != null ? Number(l.lng) : null
   };
 }
 
@@ -63,7 +65,9 @@ export default function FarmerDashboard() {
     setAdjustItem(item);
     setAdjustForm({
       price: String(item.rawPricePerUnit || ''),
-      quantity: String(item.rawQuantity || '')
+      quantity: String(item.rawQuantity || ''),
+      lat: item.rawLat != null ? item.rawLat : null,
+      lng: item.rawLng != null ? item.rawLng : null
     });
     setShowAdjustModal(true);
   };
@@ -80,7 +84,9 @@ export default function FarmerDashboard() {
     try {
       await api.updateListing(adjustItem.rawId, {
         price_per_unit: price,
-        quantity: qty
+        quantity: qty,
+        lat: adjustForm.lat != null ? Number(adjustForm.lat) : null,
+        lng: adjustForm.lng != null ? Number(adjustForm.lng) : null
       });
       await loadMyListings();
       setShowAdjustModal(false);
@@ -583,6 +589,19 @@ export default function FarmerDashboard() {
                       className="w-full px-3 py-2 bg-(--canvas) border border-(--line) rounded-xl text-xs text-(--ink) focus:outline-none focus:border-(--leaf) focus:bg-(--card)"
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-(--ink) mb-1">
+                    <span className="inline-block mr-1">📍</span>{t('farmer.modal.adjustFarmMap')}
+                  </label>
+                  <DeliveryMapPicker
+                    markerPosition={adjustForm.lat != null && adjustForm.lng != null ? [adjustForm.lat, adjustForm.lng] : null}
+                    onPositionChange={(lat, lng) => setAdjustForm(prev => ({ ...prev, lat, lng }))}
+                    prompt={t('farmer.modal.mapPrompt')}
+                    pinnedLabel={t('farmer.modal.mapPinned')}
+                    height={200}
+                  />
                 </div>
 
                 <div className="pt-2 flex justify-between">

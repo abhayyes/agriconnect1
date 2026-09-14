@@ -101,6 +101,32 @@ async function predictPrices(crops) {
   }
 }
 
+// Helper: Call AI service for market-wide demand (all crops, no farmer scope)
+// so consumers see which produce is in high demand in the mandi market.
+async function fetchMarketDemand() {
+  const AI_SERVICE_URL = process.env.AI_SERVICE_URL;
+  if (!AI_SERVICE_URL) {
+    console.warn('AI_SERVICE_URL not set, skipping demand forecast');
+    return null;
+  }
+  try {
+    const response = await fetch(`${AI_SERVICE_URL}/predict-demand`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+      signal: AbortSignal.timeout(20000)
+    });
+    if (!response.ok) {
+      console.error(`AI service returned ${response.status} for predict-demand`);
+      return null;
+    }
+    return await response.json();
+  } catch (err) {
+    console.error('Failed to call AI service for market demand:', err.message);
+    return null;
+  }
+}
+
 // GET /api/orders
 // Returns orders relevant to the authenticated user:
 // - Buyers see orders they placed
@@ -609,6 +635,24 @@ async function geocodeAddress(req, res, next) {
   }
 }
 
+// GET /api/orders/demand-forecast
+// Any authenticated user: market-wide crop demand (kg over 7 days) so buyers
+// see which produce is in high demand right now in the mandi market.
+async function getMarketDemand(req, res, next) {
+  try {
+    const result = await fetchMarketDemand();
+    if (!result || !result.forecast) {
+      return res.status(503).json({
+        message: 'Demand forecasting service unavailable',
+        forecast: null
+      });
+    }
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
 // GET /api/orders/dashboard/demand-forecast
 // Farmer-only: returns AI-predicted demand for their listings
 async function getDemandForecast(req, res, next) {
@@ -666,6 +710,7 @@ module.exports = {
   updateOrderStatus,
   previewRoute,
   geocodeAddress,
+  getMarketDemand,
   getDemandForecast,
   getPriceForecast
 };
