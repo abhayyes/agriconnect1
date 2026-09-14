@@ -15,10 +15,13 @@ from app.schemas import (
     CropDemandForecast,
     PriceForecastRequest,
     PriceForecastResponse,
+    ChatRequest,
+    ChatResponse
 )
 from app.services.demand_forecaster import get_forecaster
 from app.services.price_forecaster import get_price_forecaster
 from app.services.route_optimizer import optimize_delivery_route
+from app.services.chat_service import ask_llm, fallback_reply, ChatterError
 
 router = APIRouter()
 
@@ -89,3 +92,20 @@ def optimize_route(req: OptimizeRouteRequest):
         waypoints=waypoints,
         quantity=quantity
     )
+
+
+@router.post("/chat", response_model=ChatResponse)
+def chat_endpoint(req: ChatRequest):
+    """
+    Kisan Assistant chat powered by Groq (free LLM).
+
+    Answers the farmer's query. If the LLM is unavailable (no key / offline /
+    provider error) it degrades gracefully to a friendly offline reply instead
+    of failing the request.
+    """
+    try:
+        reply = ask_llm(req.query, language=req.language, history=req.history)
+    except ChatterError:
+        reply = fallback_reply(req.language)
+
+    return ChatResponse(reply=reply)

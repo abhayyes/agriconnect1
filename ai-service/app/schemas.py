@@ -88,3 +88,21 @@ class OptimizeRouteResponse(BaseModel):
     pickup_coords: Optional[LatLng] = None
     delivery_coords: Optional[LatLng] = None
     polyline: Optional[List[LatLng]] = None  # ordered road geometry (OSRM), null on fallback
+
+
+# ==========================================
+# 4. Kisan Assistant Chat (LLM) Schemas
+# ==========================================
+
+# A single turn in the chat history (optional context for the LLM)
+class ChatMessage(BaseModel):
+    role: str  # "user" | "assistant"
+    content: str
+
+class ChatRequest(BaseModel):
+    query: str
+    language: str = "en"  # "en" | "hi"
+    history: Optional[List[ChatMessage]] = []
+
+class ChatResponse(BaseModel):
+    reply: str

@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
+import { chatRequest } from '../services/chat';
 import {
   MessageCircle,
   X,
@@ -587,14 +588,37 @@ export default function FarmerAssistantChat() {
     setMessages((m) => [...m, { role: 'user', text: q, links: [] }]);
     setInput('');
     setTyping(true);
-    setTimeout(() => {
-      const intent = matchIntent(q);
-      setMessages((m) => [
-        ...m,
-        { role: 'assistant', intentId: intent.id, links: intent.links || [] }
-      ]);
-      setTyping(false);
-    }, 650);
+
+    const intent = matchIntent(q);
+
+    // Known/offline KB intent → instant answer, no network needed.
+    if (intent.id !== 'default') {
+      setTimeout(() => {
+        setMessages((m) => [
+          ...m,
+          { role: 'assistant', intentId: intent.id, links: intent.links || [] }
+        ]);
+        setTyping(false);
+      }, 650);
+      return;
+    }
+
+    // Unmatched query → ask the LLM (via the backend ai-service → Groq).
+    // The Groq key never touches this frontend bundle.
+    chatRequest(q, language)
+      .then((reply) => {
+        setMessages((m) => [
+          ...m,
+          { role: 'assistant', intentId: 'llm', llmText: reply, links: [] }
+        ]);
+      })
+      .catch(() => {
+        setMessages((m) => [
+          ...m,
+          { role: 'assistant', intentId: 'default', links: [] }
+        ]);
+      })
+      .finally(() => setTyping(false));
   };
 
   return (
@@ -686,7 +710,7 @@ className="fixed bottom-5 right-5 z-[1500] w-[380px] max-w-[calc(100vw-1.5rem)] 
                       </div>
                     )}
                     {m.role === 'assistant'
-                      ? renderRich(resolveReply(m.intentId, language))
+                      ? renderRich(m.intentId === 'llm' ? m.llmText : resolveReply(m.intentId, language))
                       : renderRich(m.text)}
                     {m.links && m.links.length > 0 && (
                       <div className="mt-2.5 space-y-1.5">

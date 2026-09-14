@@ -2,6 +2,7 @@ fastapi
 uvicorn[standard]
 ortools
 pydantic
+pydantic-settings
 numpy
 pandas
 scikit-learn
