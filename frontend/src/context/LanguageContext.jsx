@@ -181,6 +181,8 @@ const translations = {
     'category.grains': 'Grains',
     'category.fruits': 'Fruits',
     'category.dryFruits': 'Dry Fruits',
+    'category.dryfruits': 'Dry Fruits',
+    'category.other': 'Others',
 
     // Payment methods
     'payment.upi.label': 'UPI',
@@ -610,6 +612,8 @@ const translations = {
     'category.grains': 'अनाज',
     'category.fruits': 'फल',
     'category.dryFruits': 'सूखे मेवे',
+    'category.dryfruits': 'सूखे मेवे',
+    'category.other': 'अन्य',
 
     // Payment methods
     'payment.upi.label': 'UPI',
