@@ -9,7 +9,9 @@ import {
   CheckCircle2,
   Wheat,
   X,
-  Trash2
+  Trash2,
+  Upload,
+  Image as ImageIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../services/api';
@@ -49,7 +51,7 @@ export default function FarmerDashboard() {
   const { user } = useAuth();
   const { t } = useLanguage();
   const [showModal, setShowModal] = useState(false);
-  const [newCrop, setNewCrop] = useState({ name: '', stock: '', price: '', grade: 'Grade A+' });
+  const [newCrop, setNewCrop] = useState({ name: '', stock: '', price: '', grade: 'Grade A+', description: '', photos: [] });
   const [inventoryItems, setInventoryItems] = useState([]);
   const [orders, setOrders] = useState([]);
   const [farmLat, setFarmLat] = useState(null);
@@ -190,6 +192,34 @@ export default function FarmerDashboard() {
     return { day, val: amt, height: `${Math.min(95, (amt / Math.max(1, ...recentOrders.map(x => Number(x.total_price || 1)))) * 90)}%` };
   }) : [];
 
+  const handlePhotoUpload = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length + newCrop.photos.length > 5) {
+      alert(t('farmer.alert.maxPhotos') || 'Maximum 5 photos allowed');
+      return;
+    }
+
+    // Convert to base64 for preview and storage
+    const readers = files.map(file => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.readAsDataURL(file);
+      });
+    });
+
+    Promise.all(readers).then(base64Photos => {
+      setNewCrop({ ...newCrop, photos: [...newCrop.photos, ...base64Photos] });
+    });
+  };
+
+  const handleRemovePhoto = (index) => {
+    setNewCrop({
+      ...newCrop,
+      photos: newCrop.photos.filter((_, i) => i !== index)
+    });
+  };
+
   const handleAddCrop = async (e) => {
     e.preventDefault();
     if (!newCrop.name || !newCrop.stock || !newCrop.price) return;
@@ -208,10 +238,12 @@ export default function FarmerDashboard() {
         price_per_unit: Number(newCrop.price),
         location: user?.location || 'Map-pinned farm',
         lat: farmLat,
-        lng: farmLng
+        lng: farmLng,
+        description: newCrop.description || '',
+        photos: newCrop.photos || []
       });
       await loadMyListings();
-      setNewCrop({ name: '', stock: '', price: '', grade: 'Grade A+' });
+      setNewCrop({ name: '', stock: '', price: '', grade: 'Grade A+', description: '', photos: [] });
       setFarmLat(null);
       setFarmLng(null);
       setShowModal(false);
@@ -464,6 +496,67 @@ export default function FarmerDashboard() {
                     onChange={(e) => setNewCrop({ ...newCrop, name: e.target.value })}
                     className="w-full px-3 py-2 bg-(--canvas) border border-(--line) rounded-xl text-xs text-(--ink) focus:outline-none focus:border-(--leaf) focus:bg-(--card)"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-(--ink) mb-1">
+                    {t('farmer.modal.description') || 'Description'}
+                  </label>
+                  <textarea
+                    placeholder={t('farmer.modal.descriptionPlaceholder') || 'Describe your crop quality, harvest date, etc.'}
+                    value={newCrop.description}
+                    onChange={(e) => setNewCrop({ ...newCrop, description: e.target.value })}
+                    rows={3}
+                    className="w-full px-3 py-2 bg-(--canvas) border border-(--line) rounded-xl text-xs text-(--ink) focus:outline-none focus:border-(--leaf) focus:bg-(--card) resize-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-(--ink) mb-1">
+                    {t('farmer.modal.photos') || 'Crop Photos'} ({newCrop.photos.length}/5)
+                  </label>
+
+                  {newCrop.photos.length > 0 && (
+                    <div className="grid grid-cols-3 gap-2 mb-2">
+                      {newCrop.photos.map((photo, idx) => (
+                        <div key={idx} className="relative group">
+                          <img
+                            src={photo}
+                            alt={`Crop ${idx + 1}`}
+                            className="w-full h-20 object-cover rounded-lg border border-(--line)"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleRemovePhoto(idx)}
+                            className="absolute top-1 right-1 p-1 bg-(--danger) text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {newCrop.photos.length < 5 && (
+                    <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-(--line) rounded-xl cursor-pointer hover:border-(--leaf) hover:bg-(--canvas) transition-colors">
+                      <div className="flex flex-col items-center justify-center text-center">
+                        <Upload className="w-6 h-6 text-(--muted) mb-1" />
+                        <p className="text-xs text-(--muted) font-medium">
+                          {t('farmer.modal.uploadPhotos') || 'Click to upload photos'}
+                        </p>
+                        <p className="text-[10px] text-(--faint)">
+                          {t('farmer.modal.photoHint') || 'Max 5 photos, JPG/PNG'}
+                        </p>
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handlePhotoUpload}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
