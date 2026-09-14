@@ -29,7 +29,9 @@ export default function DeliveryMapPicker({
   center: [clat, clng] = [20.5937, 78.9629], // India
   markerPosition = null,
   onPositionChange,
-  height = 210
+  height = 210,
+  prompt = 'Click on the map to pin your delivery location',
+  pinnedLabel = 'Pin at'
 }) {
   const [locating, setLocating] = useState(false);
 
@@ -79,8 +81,8 @@ export default function DeliveryMapPicker({
       <div className="mt-1.5 flex items-center justify-between">
         <p className="text-[11px] text-(--muted)">
           {markerPosition
-            ? `📍 Pin at ${markerPosition[0].toFixed(4)}, ${markerPosition[1].toFixed(4)}`
-            : '🗺️ Click on the map to pin your delivery location'}
+            ? `${pinnedLabel} ${markerPosition[0].toFixed(4)}, ${markerPosition[1].toFixed(4)}`
+            : prompt}
         </p>
         <button
           type="button"

@@ -175,7 +175,7 @@ async function getListings(req, res, next) {
 // Auth: farmer or fpo only
 async function createListing(req, res, next) {
   try {
-    const { crop, variety, quantity, unit, price_per_unit, location, status } = req.body;
+    const { crop, variety, quantity, unit, price_per_unit, location, status, lat, lng } = req.body;
 
     if (!crop || !quantity || !unit || !price_per_unit) {
       return res.status(400).json({
@@ -212,11 +212,17 @@ async function createListing(req, res, next) {
     );
 
     // Best-effort: store coordinates for the listing's location so consumers
-    // can see and sort by distance. Never blocks a successful creation.
+    // can see and sort by distance, and so route tracking uses the exact farm
+    // origin. Prefer the farmer's map-pinned coordinates from the body; fall
+    // back to geocoding the location string. Never blocks a successful create.
     const listing = result.rows[0];
-    if (location) {
-      const coords = await geocodeLocation(location);
-      if (coords) {
+    if (location || (lat != null && lng != null)) {
+      const provided =
+        lat != null && lng != null && isFinite(Number(lat)) && isFinite(Number(lng));
+      const coords = provided
+        ? { lat: Number(lat), lng: Number(lng) }
+        : await geocodeLocation(location);
+      if (coords && isFinite(coords.lat) && isFinite(coords.lng)) {
         try {
           await pool.query('UPDATE listings SET lat = $1, lng = $2 WHERE id = $3', [coords.lat, coords.lng, listing.id]);
           listing.lat = coords.lat;

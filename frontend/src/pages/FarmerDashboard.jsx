@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../services/api';
 import { useAuth } from '../App';
 import { useLanguage } from '../context/LanguageContext';
+import DeliveryMapPicker from '../components/DeliveryMapPicker';
 
 // NOTE: Inventory is loaded from the logged-in farmer's OWN listings via the
 // backend (getProducts filtered by farmer_id). Demo/sample crops only exist as
@@ -49,6 +50,8 @@ export default function FarmerDashboard() {
   const [newCrop, setNewCrop] = useState({ name: '', stock: '', price: '', grade: 'Grade A+' });
   const [inventoryItems, setInventoryItems] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [farmLat, setFarmLat] = useState(null);
+  const [farmLng, setFarmLng] = useState(null);
 
   // Adjust modal state
   const [showAdjustModal, setShowAdjustModal] = useState(false);
@@ -184,6 +187,10 @@ export default function FarmerDashboard() {
   const handleAddCrop = async (e) => {
     e.preventDefault();
     if (!newCrop.name || !newCrop.stock || !newCrop.price) return;
+    if (!farmLat || !farmLng) {
+      alert(t('farmer.alert.needFarmPin'));
+      return;
+    }
 
     // Persist listing to the backend so it becomes visible in the marketplace
     try {
@@ -193,10 +200,14 @@ export default function FarmerDashboard() {
         quantity: Number(newCrop.stock),
         unit: 'kg',
         price_per_unit: Number(newCrop.price),
-        location: user?.location || 'AgriConnect Mandi'
+        location: user?.location || 'Map-pinned farm',
+        lat: farmLat,
+        lng: farmLng
       });
       await loadMyListings();
       setNewCrop({ name: '', stock: '', price: '', grade: 'Grade A+' });
+      setFarmLat(null);
+      setFarmLng(null);
       setShowModal(false);
       alert(t('farmer.alert.cropListedSuccess'));
     } catch (err) {
@@ -485,6 +496,19 @@ export default function FarmerDashboard() {
                     <option value="Grade A">{t('farmer.grade.gradeA')}</option>
                     <option value="Grade B+">{t('farmer.grade.gradeBPlus')}</option>
                   </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-(--ink) mb-1">
+                    <span className="inline-block mr-1">📍</span>{t('farmer.modal.fetchFarmFromMap')}
+                  </label>
+                  <DeliveryMapPicker
+                    markerPosition={farmLat && farmLng ? [farmLat, farmLng] : null}
+                    onPositionChange={(lat, lng) => { setFarmLat(lat); setFarmLng(lng); }}
+                    prompt={t('farmer.modal.mapPrompt')}
+                    pinnedLabel={t('farmer.modal.mapPinned')}
+                    height={200}
+                  />
                 </div>
 
                 <div className="pt-2 flex justify-end gap-2">
