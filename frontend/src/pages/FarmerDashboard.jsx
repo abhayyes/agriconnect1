@@ -473,7 +473,7 @@ export default function FarmerDashboard() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96 }}
               transition={{ duration: 0.2 }}
-              className="bg-(--card) border border-(--line) rounded-2xl p-6 w-full max-w-md shadow-lg relative"
+              className="bg-(--card) border border-(--line) rounded-2xl p-6 w-full max-w-md shadow-lg relative max-h-[90vh] overflow-y-auto"
             >
               <button
                 onClick={() => setShowModal(false)}
@@ -640,7 +640,7 @@ export default function FarmerDashboard() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96 }}
               transition={{ duration: 0.2 }}
-              className="bg-(--card) border border-(--line) rounded-2xl p-6 w-full max-w-md shadow-lg relative"
+              className="bg-(--card) border border-(--line) rounded-2xl p-6 w-full max-w-md shadow-lg relative max-h-[90vh] overflow-y-auto"
             >
               <button
                 onClick={() => { setShowAdjustModal(false); setAdjustItem(null); }}
