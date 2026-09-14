@@ -8,7 +8,8 @@ const {
   updateOrderStatus,
   previewRoute,
   geocodeAddress,
-  getDemandForecast
+  getDemandForecast,
+  getPriceForecast
 } = require('../controllers/ordersController');
 const { requireAuth } = require('../middleware/auth');
 const { requireRole } = require('../middleware/authorize');
@@ -27,6 +28,9 @@ router.post('/geocode', requireAuth, geocodeAddress);
 
 // GET /api/orders/dashboard/demand-forecast - farmer/fpo only
 router.get('/dashboard/demand-forecast', requireAuth, getDemandForecast);
+
+// GET /api/orders/price-forecast - consumer-facing price trend prediction
+router.get('/price-forecast', requireAuth, getPriceForecast);
 
 // GET /api/orders/:orderId - view single order
 router.get('/:orderId', requireAuth, getOrderById);

@@ -72,6 +72,35 @@ async function predictDemand(farmerId) {
   }
 }
 
+// Helper: Call AI service for price forecasting (consumer-facing, trend + season)
+async function predictPrices(crops) {
+  const AI_SERVICE_URL = process.env.AI_SERVICE_URL;
+
+  if (!AI_SERVICE_URL) {
+    console.warn('AI_SERVICE_URL not set, skipping price forecast');
+    return null;
+  }
+
+  try {
+    const response = await fetch(`${AI_SERVICE_URL}/price-forecast`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ crops: crops || null }),
+      signal: AbortSignal.timeout(20000)
+    });
+
+    if (!response.ok) {
+      console.error(`AI service returned ${response.status} for price-forecast`);
+      return null;
+    }
+
+    return await response.json();
+  } catch (err) {
+    console.error('Failed to call AI service for price forecast:', err.message);
+    return null;
+  }
+}
+
 // GET /api/orders
 // Returns orders relevant to the authenticated user:
 // - Buyers see orders they placed
@@ -603,6 +632,32 @@ async function getDemandForecast(req, res, next) {
   }
 }
 
+// GET /api/orders/price-forecast
+// Consumer-facing: returns predicted price + trend + season for each crop over
+// the next 7 days, derived by the AI service from recent price changes and the
+// seasonal price cycle.
+async function getPriceForecast(req, res, next) {
+  try {
+    // Optional ?crops=Wheat,Onions filter; otherwise all known crops.
+    const crops = req.query.crops
+      ? String(req.query.crops).split(',').map((c) => c.trim()).filter(Boolean)
+      : null;
+
+    const result = await predictPrices(crops);
+
+    if (!result) {
+      return res.status(503).json({
+        message: 'Price forecasting service unavailable',
+        forecast: null
+      });
+    }
+
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   getOrders,
   createOrder,
@@ -611,5 +666,6 @@ module.exports = {
   updateOrderStatus,
   previewRoute,
   geocodeAddress,
-  getDemandForecast
+  getDemandForecast,
+  getPriceForecast
 };

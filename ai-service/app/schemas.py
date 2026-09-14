@@ -37,7 +37,31 @@ class PredictDemandResponse(BaseModel):
 
 
 # ==========================================
-# 3. Route Optimization Schemas
+# 3. Consumer Price Forecast Schemas
+# ==========================================
+
+# Per-crop price forecast for buyers (trend + season feature)
+class PriceForecast(BaseModel):
+    crop: str
+    current_price: float
+    predicted_price: float
+    pct_change: float
+    direction: str                 # up | down | stable
+    period: str = "next 7 days"
+    season: Optional[str] = None
+    season_index: Optional[float] = None
+    confidence: float
+    data_sparse: Optional[bool] = False
+
+class PriceForecastRequest(BaseModel):
+    crops: Optional[List[str]] = None   # empty -> all known crops
+
+class PriceForecastResponse(BaseModel):
+    forecast: List[PriceForecast]
+
+
+# ==========================================
+# 4. Route Optimization Schemas
 # ==========================================
 
 class LatLng(BaseModel):

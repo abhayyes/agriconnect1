@@ -195,6 +195,12 @@ export const api = {
     }
   },
 
+  // Consumer price forecast (trend + season) for all or specific crops
+  getPriceForecast: async (crops) => {
+    const q = crops && crops.length ? `?crops=${encodeURIComponent(crops.join(','))}` : '';
+    return await api.request(`/api/orders/price-forecast${q}`, { method: 'GET' });
+  },
+
   // Geocode a typed delivery address to map coordinates (pin on map)
   geocode: async (address) => {
     try {

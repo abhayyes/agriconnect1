@@ -12,9 +12,12 @@ from app.schemas import (
     PredictDemandResponse,
     OptimizeRouteRequest,
     OptimizeRouteResponse,
-    CropDemandForecast
+    CropDemandForecast,
+    PriceForecastRequest,
+    PriceForecastResponse,
 )
 from app.services.demand_forecaster import get_forecaster
+from app.services.price_forecaster import get_price_forecaster
 from app.services.route_optimizer import optimize_delivery_route
 
 router = APIRouter()
@@ -48,6 +51,25 @@ def predict_demand(req: PredictDemandRequest):
         forecast_list = forecaster.forecast_for_farmer(farmer_id=farmer_id)
 
     return PredictDemandResponse(forecast=forecast_list)
+
+
+@router.post("/price-forecast", response_model=PriceForecastResponse)
+def price_forecast(req: PriceForecastRequest):
+    """
+    Consumer-facing price forecast endpoint.
+    Projects each crop's price over the next 7 days based on its recent price
+    change and its seasonal cycle. Empty `crops` returns all known crops.
+    """
+    forecaster = get_price_forecaster()
+    if req.crops:
+        return PriceForecastResponse(forecast=[forecaster.forecast_price(c) for c in req.crops])
+    return PriceForecastResponse(forecast=forecaster.forecast_all())
+
+
+@router.get("/price-forecast", response_model=PriceForecastResponse)
+def price_forecast_get():
+    """GET convenience for the same consumer price forecast."""
+    return PriceForecastResponse(forecast=get_price_forecaster().forecast_all())
 
 
 @router.post("/optimize-route", response_model=OptimizeRouteResponse)

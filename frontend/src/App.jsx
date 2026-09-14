@@ -1,11 +1,12 @@
 import { useState, createContext, useContext, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, NavLink, useNavigate } from 'react-router-dom';
-import { Sprout, LayoutDashboard, ShoppingBag, Truck, UserCheck, LogOut, ArrowRight, ShieldCheck, Activity, Package } from 'lucide-react';
+import { Sprout, LayoutDashboard, ShoppingBag, Truck, UserCheck, LogOut, ArrowRight, ShieldCheck, Activity, Package, TrendingUp } from 'lucide-react';
 import Login from './pages/Login';
 import ConsumerMarketplace from './pages/ConsumerMarketplace';
 import FarmerDashboard from './pages/FarmerDashboard';
 import Tracking from './pages/OrderTracking';
 import Orders from './pages/Orders';
+import PricePredictions from './pages/PricePredictions';
 import { api } from './services/api';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -124,6 +125,22 @@ function Navbar() {
               <span>{t('nav.tracking')}</span>
             </NavLink>
 
+            {isBuyer && (
+              <NavLink
+                to="/price-predictions"
+                className={({ isActive }) =>
+                  `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-(--moss) text-(--leaf) font-semibold shadow-xs'
+                      : 'text-(--muted) hover:text-(--ink) hover:bg-(--subtle)'
+                  }`
+                }
+              >
+                <TrendingUp className="w-4 h-4" />
+                <span>Prices</span>
+              </NavLink>
+            )}
+
             <div className="h-4 w-px bg-(--line) mx-1 hidden sm:block" />
 
             {/* Auth Profile / Switch role */}
@@ -221,6 +238,7 @@ function AppContent({ user }) {
               : <Navigate to={user ? '/marketplace' : '/login'} replace />
           } />
           <Route path="/orders" element={<Orders />} />
+          <Route path="/price-predictions" element={<PricePredictions />} />
           <Route path="/tracking" element={<Tracking />} />
           <Route path="/order-tracking" element={<Tracking />} />
         </Routes>
