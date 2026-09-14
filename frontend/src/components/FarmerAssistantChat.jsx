@@ -708,9 +708,9 @@ className="fixed bottom-5 right-5 z-[1500] w-[380px] max-w-[calc(100vw-1.5rem)] 
               {typing && (
                 <div className="flex justify-start">
                   <div className="px-4 py-3 rounded-2xl rounded-bl-sm bg-(--card) border border-(--line) shadow-sm flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-(--line-strong) animate-bounce" />
-                    <span className="w-1.5 h-1.5 rounded-full bg-(--line-strong) animate-bounce [animation-delay:120ms]" />
-                    <span className="w-1.5 h-1.5 rounded-full bg-(--line-strong) animate-bounce [animation-delay:240ms]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-(--line-strong) animate-pulse" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-(--line-strong) animate-pulse [animation-delay:120ms]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-(--line-strong) animate-pulse [animation-delay:240ms]" />
                   </div>
                 </div>
               )}

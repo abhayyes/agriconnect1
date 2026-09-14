@@ -58,20 +58,31 @@ function ProductCard({ product, onBuy, index }) {
     setPreviewLoading(true);
     setPreviewError('');
     const t = setTimeout(async () => {
-      try {
-        const data = await api.previewRoute({
-          pickup_location: product.location || 'AgriConnect Mandi',
-          delivery_lat: deliveryLat,
-          delivery_lng: deliveryLng,
-          quantity
-        });
-        setRoutePreview(data);
-      } catch (e) {
-        setRoutePreview(null);
-        setPreviewError('Could not calculate route right now. Tap again to retry.');
-      } finally {
-        setPreviewLoading(false);
+      // The route service cold-starts slowly (Render free tier sleeps after
+      // ~15 min idle; wake can take 50s+). Retry with backoff so a cold start
+      // doesn't surface as an immediate "could not calculate" error.
+      const payload = {
+        pickup_location: product.location || 'AgriConnect Mandi',
+        delivery_lat: deliveryLat,
+        delivery_lng: deliveryLng,
+        quantity
+      };
+      for (let attempt = 0; attempt < 4; attempt++) {
+        try {
+          const data = await api.previewRoute(payload);
+          setRoutePreview(data);
+          setPreviewError('');
+          break;
+        } catch (e) {
+          if (attempt === 3) {
+            setRoutePreview(null);
+            setPreviewError('Could not calculate route right now. Tap again to retry.');
+          } else {
+            await new Promise((r) => setTimeout(r, [2500, 6000, 12000][attempt]));
+          }
+        }
       }
+      setPreviewLoading(false);
     }, 500);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -86,17 +97,24 @@ function ProductCard({ product, onBuy, index }) {
     if (text.length < 4) return;
     setGeocoding(true);
     setGeoError('');
+    // One retry absorbs a transient Nominatim rate-limit/failure; the backend
+    // cache means repeat queries for the same address don't re-hit the geocoder.
+    let g;
     try {
-      const g = await api.geocode(text);
-      if (g && g.lat != null && g.lng != null) {
-        setDeliveryLat(g.lat);
-        setDeliveryLng(g.lng);
-      }
+      g = await api.geocode(text);
     } catch (e) {
-      setGeoError('Could not find this address on the map. Try the map instead.');
-    } finally {
-      setGeocoding(false);
+      try { g = await api.geocode(text); } catch (e2) { g = null; }
     }
+    if (g && g.lat != null && g.lng != null) {
+      setDeliveryLat(g.lat);
+      setDeliveryLng(g.lng);
+      setGeoError('');
+    } else {
+      // Keep any previously pinned point; never clear a good pin because a
+      // geocode failed. Offer the manual map instead - it doesn't block the order.
+      setGeoError("Couldn't auto-find that address - tap the map to set your delivery point.");
+    }
+    setGeocoding(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

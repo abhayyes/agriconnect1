@@ -497,6 +497,14 @@ async function previewRoute(req, res, next) {
   }
 }
 
+// In-memory geocode cache keyed by the normalized address string. The frontend
+// debounces a geocode on every keystroke while typing, and Nominatim (free,
+// no key) rate-limits aggressively from shared server IPs. Caching a resolved
+// or failed address avoids hammering the geocoder for the same query, which is
+// the main cause of the "could not find this address" errors.
+const geoCache = new Map();
+const GEO_CACHE_MAX = 500;
+
 // POST /api/orders/geocode
 // Resolves a typed delivery address string to map coordinates so the frontend
 // can pin it on the map and keep the address field and map in sync. Uses the
@@ -509,39 +517,64 @@ async function geocodeAddress(req, res, next) {
       return res.status(400).json({ error: 'address is required' });
     }
 
-    const q = encodeURIComponent(address.trim());
-    const url = `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1&countrycodes=in`;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 10000);
+    const key = address.trim().toLowerCase();
 
-    let resp;
-    try {
-      resp = await fetch(url, {
-        headers: {
-          'User-Agent': 'AgriConnect/1.0 (order delivery geocoder; https://agriconnect.in)',
-          'Accept-Language': 'en'
-        },
-        signal: controller.signal
-      });
-    } finally {
-      clearTimeout(timer);
+    // Serve a cached answer (success or explicit no-result) so repeat queries
+    // for the same address never touch Nominatim again.
+    if (geoCache.has(key)) {
+      return res.status(geoCache.get(key).status).json(geoCache.get(key).body);
     }
 
-    if (!resp.ok) {
-      return res.status(502).json({ error: 'Geocoding service unavailable' });
+    const q = encodeURIComponent(address.trim());
+    const url = `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1&countrycodes=in`;
+
+    // Nominatim returns 429 (and sometimes 5xx) when we exceed its per-IP rate
+    // limit. Retry a couple of times with a short backoff before failing, since
+    // a single transient rejection shouldn't surface as "address not found".
+    let resp = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 10000);
+      try {
+        resp = await fetch(url, {
+          headers: {
+            'User-Agent': 'AgriConnect/1.0 (order delivery geocoder; https://agriconnect.in)',
+            'Accept-Language': 'en'
+          },
+          signal: controller.signal
+        });
+      } finally {
+        clearTimeout(timer);
+      }
+      if (resp.ok || (resp.status !== 429 && resp.status < 500)) {
+        break; // success or a definitive non-rate-limit failure
+      }
+      await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+    }
+
+    if (!resp || !resp.ok) {
+      if (resp && resp.status >= 500) {
+        return res.status(502).json({ error: 'Geocoding service unavailable' });
+      }
+      return res.status(429).json({ error: 'Geocoding service busy, try again' });
     }
 
     const results = await resp.json();
     if (!Array.isArray(results) || results.length === 0) {
+      geoCache.set(key, { status: 404, body: { error: 'Address not found on map' } });
+      if (geoCache.size > GEO_CACHE_MAX) geoCache.delete(geoCache.keys().next().value);
       return res.status(404).json({ error: 'Address not found on map' });
     }
 
     const r = results[0];
-    res.status(200).json({
+    const body = {
       lat: parseFloat(r.lat),
       lng: parseFloat(r.lon),
       display_name: r.display_name || null
-    });
+    };
+    geoCache.set(key, { status: 200, body });
+    if (geoCache.size > GEO_CACHE_MAX) geoCache.delete(geoCache.keys().next().value);
+    res.status(200).json(body);
   } catch (err) {
     next(err);
   }
