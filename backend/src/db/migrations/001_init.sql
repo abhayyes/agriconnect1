@@ -44,9 +44,15 @@ CREATE TABLE IF NOT EXISTS listings (
   price_per_unit  NUMERIC(12,2) NOT NULL CHECK (price_per_unit >= 0),
   status          listing_status NOT NULL DEFAULT 'active',
   location        VARCHAR(255),
+  lat             DOUBLE PRECISION,
+  lng             DOUBLE PRECISION,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Geocoded coordinates for "nearest listing" sorting (idempotent for existing DBs)
+ALTER TABLE listings ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION;
+ALTER TABLE listings ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION;
 
 CREATE INDEX IF NOT EXISTS idx_listings_crop      ON listings(crop);
 CREATE INDEX IF NOT EXISTS idx_listings_farmer_id ON listings(farmer_id);

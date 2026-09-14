@@ -206,6 +206,11 @@ function ProductCard({ product, onBuy, index }) {
             <div className="flex items-center gap-1.5 text-(--muted)">
               <MapPin className="w-3.5 h-3.5 text-(--faint)" />
               <span>{product.location} • {t('marketplace.product.mandiHub')}</span>
+              {product.distance_km != null && (
+                <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-(--moss) text-(--leaf) border border-(--line-strong)">
+                  {product.distance_km < 1 ? '<1 km' : `~${product.distance_km} km`}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -429,7 +434,7 @@ export default function Marketplace() {
   const navigate = useNavigate();
   const { t } = useLanguage();
   const { user } = useAuth();
-  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   // Products load from real backend listings (getProducts) keyed to different
   // farmers. Starts empty — no hardcoded sample crops, so buyers only ever see
@@ -438,12 +443,74 @@ export default function Marketplace() {
   const [isLoading, setIsLoading] = useState(false);
   const [orders, setOrders] = useState([]);
 
-  // Load listings from backend
+  // Sort / filter for the mandi market.
+  //   sort: 'newest' | 'price_asc' | 'price_desc' | 'nearest'
+  //   userCoords: browser-geolocated { lat, lng } used only for 'nearest'.
+  const [sort, setSort] = useState('newest');
+  const [userCoords, setUserCoords] = useState(null);
+  const [locating, setLocating] = useState(false);
+  const [maxPrice, setMaxPrice] = useState(0); // 0 = no price cap
+
+  // Map a crop name to a broad category so the filter pills actually match.
+  const CROP_CATEGORY = {
+    potato: 'vegetables', tomato: 'vegetables', onion: 'vegetables', carrot: 'vegetables',
+    cabbage: 'vegetables', cauliflower: 'vegetables', brinjal: 'vegetables', beans: 'vegetables',
+    okra: 'vegetables', bhindi: 'vegetables', spinach: 'vegetables', palak: 'vegetables',
+    chilli: 'vegetables', chili: 'vegetables', garlic: 'vegetables', ginger: 'vegetables',
+    wheat: 'grains', 'basmati rice': 'grains', basmati: 'grains', rice: 'grains',
+    maize: 'grains', corn: 'grains', barley: 'grains', millet: 'grains', jowar: 'grains',
+    bajra: 'grains', ragi: 'grains',
+    mango: 'fruits', apple: 'fruits', banana: 'fruits', orange: 'fruits', grapes: 'fruits',
+    papaya: 'fruits', pomegranate: 'fruits', guava: 'fruits', lemon: 'fruits',
+    almond: 'dryfruits', cashew: 'dryfruits', walnut: 'dryfruits', peanut: 'dryfruits'
+  };
+  const inferCategory = (name) => {
+    const n = (name || '').toLowerCase();
+    for (const [k, c] of Object.entries(CROP_CATEGORY)) if (n.includes(k)) return c;
+    return 'other';
+  };
+
+  // Ask the browser for the consumer's location so "nearest listings" can work.
+  const locate = () => {
+    if (!('geolocation' in navigator)) {
+      alert('Your browser does not support location. Falling back to newest.');
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setSort('nearest');
+        setLocating(false);
+      },
+      () => {
+        setLocating(false);
+        setSort('newest');
+        alert('Location unavailable. Showing newest listings instead.');
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
+  };
+
+  const handleSort = (next) => {
+    if (next === 'nearest' && !userCoords) { locate(); return; }
+    setSort(next);
+  };
+
+  // Load listings from backend. Refetches when sort or geolocated coords
+  // change; nearest passes the consumer's lat/lng so the backend computes
+  // distance + ordering. Also infer a broad category per crop for the pills.
   useEffect(() => {
     const loadListings = async () => {
+      setIsLoading(true);
       try {
-        const data = await api.getProducts({ status: 'active' });
-        if (data.listings && data.listings.length > 0) {
+        const filters = { status: 'active', sort };
+        if (sort === 'nearest' && userCoords) {
+          filters.lat = userCoords.lat;
+          filters.lng = userCoords.lng;
+        }
+        const data = await api.getProducts(filters);
+        if (data.listings) {
           const formatted = data.listings.map(l => ({
             id: l.id,
             name: l.crop,
@@ -456,16 +523,24 @@ export default function Marketplace() {
             isDirect: true,
             organic: false,
             emoji: "🌾",
-            category: l.crop
+            category: inferCategory(l.crop),
+            distance_km: l.distance_km != null ? l.distance_km : null,
+            lat: l.lat != null ? l.lat : null,
+            lng: l.lng != null ? l.lng : null
           }));
           setProducts(formatted);
+        } else {
+          setProducts([]);
         }
       } catch (err) {
         console.error('Failed to load listings:', err);
+        setProducts([]);
+      } finally {
+        setIsLoading(false);
       }
     };
     loadListings();
-  }, []);
+  }, [sort, userCoords]);
 
   // Load user's orders
   useEffect(() => {
@@ -506,7 +581,7 @@ export default function Marketplace() {
     }
   };
 
-  const categories = ['all', 'vegetables', 'grains', 'fruits', 'dryfruits'];
+  const categories = ['all', 'vegetables', 'grains', 'fruits', 'dryfruits', 'other'];
 
   const categoryLabel = (c) => t('category.' + c);
 
@@ -515,7 +590,8 @@ export default function Marketplace() {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           p.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           p.farmer.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
+    const matchesPrice = !maxPrice || p.price <= maxPrice;
+    return matchesCategory && matchesSearch && matchesPrice;
   });
 
   return (
@@ -548,34 +624,95 @@ export default function Marketplace() {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center">
-        {/* Category Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-          {categories.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
-                selectedCategory === cat
-                  ? 'bg-(--leaf) text-white shadow-xs'
-                  : 'bg-(--card) text-(--muted) hover:text-(--ink) hover:bg-(--subtle) border border-(--line)'
-              }`}
-            >
-              {categoryLabel(cat)}
-            </button>
-          ))}
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center">
+          {/* Category Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+            {categories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                  selectedCategory === cat
+                    ? 'bg-(--leaf) text-white shadow-xs'
+                    : 'bg-(--card) text-(--muted) hover:text-(--ink) hover:bg-(--subtle) border border-(--line)'
+                }`}
+              >
+                {categoryLabel(cat)}
+              </button>
+            ))}
+          </div>
+
+          {/* Search Input */}
+          <div className="relative min-w-[260px]">
+            <Search className="w-4 h-4 text-(--faint) absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t('marketplace.search.placeholder')}
+              className="w-full pl-9 pr-3 py-2 rounded-xl bg-(--card) border border-(--line) text-xs text-(--ink) placeholder-(--faint) focus:outline-none focus:border-(--leaf) transition-colors"
+            />
+          </div>
         </div>
 
-        {/* Search Input */}
-        <div className="relative min-w-[260px]">
-          <Search className="w-4 h-4 text-(--faint) absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={t('marketplace.search.placeholder')}
-            className="w-full pl-9 pr-3 py-2 rounded-xl bg-(--card) border border-(--line) text-xs text-(--ink) placeholder-(--faint) focus:outline-none focus:border-(--leaf) transition-colors"
-          />
+        {/* Sort + price filter row */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Sort dropdown */}
+          <div className="relative">
+            <SlidersHorizontal className="w-4 h-4 text-(--faint) absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <select
+              value={locating ? 'locating' : sort}
+              onChange={(e) => handleSort(e.target.value)}
+              disabled={locating}
+              className="appearance-none pl-9 pr-8 py-2 rounded-xl bg-(--card) border border-(--line) text-xs text-(--ink) focus:outline-none focus:border-(--leaf) cursor-pointer"
+            >
+              {locating ? (
+                <option value="locating">Locating you…</option>
+              ) : (
+                <>
+                  <option value="newest">Newest first</option>
+                  <option value="price_asc">Price: low → high</option>
+                  <option value="price_desc">Price: high → low</option>
+                  <option value="nearest">Nearest to me</option>
+                </>
+              )}
+            </select>
+          </div>
+
+          {/* Max price filter */}
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-(--faint)">₹</span>
+            <input
+              type="number"
+              min="0"
+              value={maxPrice || ''}
+              onChange={(e) => setMaxPrice(Math.max(0, parseFloat(e.target.value) || 0))}
+              placeholder="Max ₹/kg"
+              className="pl-7 pr-3 py-2 w-32 rounded-xl bg-(--card) border border-(--line) text-xs text-(--ink) focus:outline-none focus:border-(--leaf)"
+            />
+          </div>
+
+          {/* Nearest hint */}
+          {(sort === 'nearest' && userCoords) && (
+            <button
+              onClick={locate}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-(--moss) text-(--leaf) border border-(--line-strong) hover:bg-(--moss-strong)"
+              title="Refresh my location"
+            >
+              <MapPin className="w-3.5 h-3.5" />
+              {t('marketplace.banner.transitEta')} · {filtered.filter(p => p.distance_km != null).length} near
+            </button>
+          )}
+          {sort === 'nearest' && !userCoords && !locating && (
+            <button
+              onClick={locate}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-(--leaf) text-white hover:bg-(--leaf-deep)"
+            >
+              <MapPin className="w-3.5 h-3.5" />
+              Use my location
+            </button>
+          )}
         </div>
       </div>
 
@@ -595,7 +732,7 @@ export default function Marketplace() {
         <div className="text-center py-12 bg-(--card) rounded-2xl border border-(--line)">
           <p className="text-(--muted) text-sm">{t('marketplace.empty.title')}</p>
           <button
-            onClick={() => { setSelectedCategory('all'); setSearchQuery(''); }}
+            onClick={() => { setSelectedCategory('all'); setSearchQuery(''); setMaxPrice(0); setSort('newest'); setUserCoords(null); }}
             className="mt-2 text-xs font-semibold text-(--leaf) hover:underline"
           >
             {t('marketplace.empty.clearFilters')}

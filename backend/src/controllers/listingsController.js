@@ -1,10 +1,57 @@
 const pool = require('../config/db');
 
+// In-memory geocode cache shared across listings so "nearest" sorting never
+// hammers Nominatim for the same location string more than once.
+const geoCache = new Map();
+const GEO_CACHE_MAX = 500;
+
+// Resolve a location string to coordinates via Nominatim (best-effort, cached).
+// Returns { lat, lng } or null on any failure so listing creation/reads are
+// never blocked by a geocode hiccup.
+async function geocodeLocation(location) {
+  if (!location || !location.trim()) return null;
+  const key = location.trim().toLowerCase();
+  if (geoCache.has(key)) return geoCache.get(key);
+
+  try {
+    const q = encodeURIComponent(location.trim());
+    const url = `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1&countrycodes=in`;
+    const resp = await fetch(url, {
+      headers: {
+        'User-Agent': 'AgriConnect/1.0 (listing geocoder; https://agriconnect.in)',
+        'Accept-Language': 'en'
+      },
+      signal: AbortSignal.timeout(10000)
+    });
+    if (!resp.ok) return null;
+    const results = await resp.json();
+    if (!Array.isArray(results) || results.length === 0) return null;
+    const coords = { lat: parseFloat(results[0].lat), lng: parseFloat(results[0].lon) };
+    if (geoCache.size > GEO_CACHE_MAX) geoCache.delete(geoCache.keys().next().value);
+    geoCache.set(key, coords);
+    return coords;
+  } catch (err) {
+    return null;
+  }
+}
+
+// Haversine great-circle distance in kilometres between two lat/lng points.
+function haversineKm(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const toRad = (d) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
 // GET /api/listings
 // Query params: crop, status, location, page, limit
 async function getListings(req, res, next) {
   try {
-    const { crop, status, location, page = 1, limit = 20 } = req.query;
+    const { crop, status, location, page = 1, limit = 20, sort, lat, lng } = req.query;
     const offset = (page - 1) * limit;
 
     let query = `
@@ -41,10 +88,44 @@ async function getListings(req, res, next) {
       params.push(`%${location}%`);
     }
 
-    query += ` ORDER BY l.created_at DESC LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}`;
+    // Ordering: nearest (requires consumer lat/lng), price low->high, price
+    // high->low, or newest (default).
+    let orderBy = 'l.created_at DESC';
+    if (sort === 'price_asc') orderBy = 'l.price_per_unit ASC NULLS LAST';
+    else if (sort === 'price_desc') orderBy = 'l.price_per_unit DESC NULLS LAST';
+    else if (sort === 'newest') orderBy = 'l.created_at DESC';
+
+    query += ` ORDER BY ${orderBy} LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}`;
     params.push(limit, offset);
 
     const result = await pool.query(query, params);
+    let rows = result.rows;
+
+    // Nearest sort: distance from the consumer's coordinates to each listing.
+    // Listings that lack stored coordinates are lazily geocoded (cached) and
+    // persisted, so the distance only needs to be computed once per location.
+    if (sort === 'nearest' && lat != null && lng != null) {
+      const originLat = parseFloat(lat);
+      const originLng = parseFloat(lng);
+      for (const r of rows) {
+        let latV = r.lat;
+        let lngV = r.lng;
+        if (latV == null || lngV == null) {
+          const c = await geocodeLocation(r.location);
+          if (c) {
+            latV = c.lat;
+            lngV = c.lng;
+            try {
+              await pool.query('UPDATE listings SET lat = $1, lng = $2 WHERE id = $3', [latV, lngV, r.id]);
+            } catch (err) { /* non-fatal */ }
+          }
+        }
+        r.distance_km = (latV != null && lngV != null)
+          ? Math.round(haversineKm(originLat, originLng, latV, lngV) * 10) / 10
+          : null;
+      }
+      rows = rows.slice().sort((a, b) => (a.distance_km ?? Infinity) - (b.distance_km ?? Infinity));
+    }
 
     // Get total count for pagination
     let countQuery = 'SELECT COUNT(*) FROM listings WHERE 1=1';
@@ -77,7 +158,7 @@ async function getListings(req, res, next) {
     const total = parseInt(countResult.rows[0].count);
 
     res.status(200).json({
-      listings: result.rows,
+      listings: rows,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -130,7 +211,21 @@ async function createListing(req, res, next) {
       [crop, result.rows[0].id, price_per_unit, unit]
     );
 
-    res.status(201).json({ listing: result.rows[0] });
+    // Best-effort: store coordinates for the listing's location so consumers
+    // can see and sort by distance. Never blocks a successful creation.
+    const listing = result.rows[0];
+    if (location) {
+      const coords = await geocodeLocation(location);
+      if (coords) {
+        try {
+          await pool.query('UPDATE listings SET lat = $1, lng = $2 WHERE id = $3', [coords.lat, coords.lng, listing.id]);
+          listing.lat = coords.lat;
+          listing.lng = coords.lng;
+        } catch (err) { /* non-fatal */ }
+      }
+    }
+
+    res.status(201).json({ listing });
   } catch (err) {
     next(err);
   }
@@ -227,8 +322,22 @@ async function updateListing(req, res, next) {
       `UPDATE listings SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING *`,
       params
     );
+    const listing = result.rows[0];
 
-    res.status(200).json({ listing: result.rows[0] });
+    // Best-effort: if the farm location changed, refresh the stored coords so
+    // "nearest listing" sorting stays accurate.
+    if (location !== undefined) {
+      const coords = await geocodeLocation(location);
+      if (coords) {
+        try {
+          await pool.query('UPDATE listings SET lat = $1, lng = $2 WHERE id = $3', [coords.lat, coords.lng, id]);
+          listing.lat = coords.lat;
+          listing.lng = coords.lng;
+        } catch (err) { /* non-fatal */ }
+      }
+    }
+
+    res.status(200).json({ listing });
   } catch (err) {
     next(err);
   }

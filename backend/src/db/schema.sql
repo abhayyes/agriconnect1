@@ -36,6 +36,8 @@ CREATE TABLE listings (
   price_per_unit  NUMERIC(12,2) NOT NULL CHECK (price_per_unit >= 0),
   status          listing_status NOT NULL DEFAULT 'active',
   location        VARCHAR(255),
+  lat             DOUBLE PRECISION,
+  lng             DOUBLE PRECISION,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
