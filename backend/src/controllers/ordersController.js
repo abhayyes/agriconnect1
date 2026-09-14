@@ -1,11 +1,11 @@
 const pool = require('../config/db');
 
 // Long timeout for AI service calls. Render's free tier spins the service down
-// after ~15 min of inactivity; a cold start can take 50s+ before OSRM runs. A
+// after ~15 min of inactivity; a cold start plus OSRM can take 50–120s+. A
 // short timeout aborts every route call after a sleep (showing "route
 // optimization in progress" forever / "could not calculate route"). This must
-// comfortably cover cold start + OSRM latency.
-const AI_SERVICE_TIMEOUT_MS = 90000;
+// comfortably cover the worst observed cold start + OSRM latency.
+const AI_SERVICE_TIMEOUT_MS = 200000;
 
 // Helper: Call AI service for route optimization
 async function optimizeRoute(orderData) {

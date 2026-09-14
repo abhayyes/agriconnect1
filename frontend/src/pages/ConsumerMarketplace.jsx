@@ -58,31 +58,35 @@ function ProductCard({ product, onBuy, index }) {
     setPreviewLoading(true);
     setPreviewError('');
     const t = setTimeout(async () => {
-      // The route service cold-starts slowly (Render free tier sleeps after
-      // ~15 min idle; wake can take 50s+). Retry with backoff so a cold start
-      // doesn't surface as an immediate "could not calculate" error.
       const payload = {
         pickup_location: product.location || 'AgriConnect Mandi',
         delivery_lat: deliveryLat,
         delivery_lng: deliveryLng,
         quantity
       };
-      for (let attempt = 0; attempt < 4; attempt++) {
+      // The AI route service cold-starts slowly (Render free sleeps ~15 min
+      // idle; wake + OSRM can take 50–120s+). Each attempt lets the backend wait
+      // out its own generous timeout internally, and we retry with long backoffs
+      // so a cold start is absorbed into a calm "warming up" state instead of a
+      // dead-end error after only a few seconds.
+      const BACKOFF_MS = [8000, 15000, 20000, 25000, 25000];
+      for (let attempt = 0; attempt <= BACKOFF_MS.length; attempt++) {
         try {
           const data = await api.previewRoute(payload);
           setRoutePreview(data);
           setPreviewError('');
-          break;
+          setPreviewLoading(false);
+          return;
         } catch (e) {
-          if (attempt === 3) {
-            setRoutePreview(null);
-            setPreviewError('Could not calculate route right now. Tap again to retry.');
-          } else {
-            await new Promise((r) => setTimeout(r, [2500, 6000, 12000][attempt]));
+          if (attempt < BACKOFF_MS.length) {
+            setPreviewError('Warming up the route service — first use can take about a minute…');
+            await new Promise((r) => setTimeout(r, BACKOFF_MS[attempt]));
           }
         }
       }
+      setRoutePreview(null);
       setPreviewLoading(false);
+      setPreviewError('Could not calculate route right now. Tap again to retry.');
     }, 500);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps

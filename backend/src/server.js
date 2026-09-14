@@ -36,6 +36,21 @@ app.use('/api/orders', orderRoutes);
   }
 })();
 
+// Keep the AI service warm so a consumer's first route preview doesn't sit
+// behind a long cold start. Render free tier sleeps a service after ~15 min of
+// inactivity; ping /health on a shorter cadence whenever the backend is up.
+// Best-effort and non-blocking - if the AI URL is unset or unreachable we skip.
+const AI_SERVICE_URL = process.env.AI_SERVICE_URL;
+if (AI_SERVICE_URL) {
+  const ping = () => {
+    fetch(`${AI_SERVICE_URL}/health`, { signal: AbortSignal.timeout(3000) })
+      .then((r) => { if (r.ok) console.log('[keep-alive] AI service warm'); })
+      .catch(() => { /* AI temporarily unreachable; will retry next tick */ });
+  };
+  ping(); // immediate so any pre-warm happens before the first consumer
+  setInterval(ping, 7 * 60 * 1000); // every 7 min, inside the 15-min idle cap
+}
+
 app.use((req, res) => {
   res.status(404).json({ error: 'Not found' });
 });
