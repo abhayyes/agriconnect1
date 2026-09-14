@@ -11,7 +11,10 @@ const orderRoutes = require('./routes/orders');
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+// Base64 photos on listings can comfortably exceed the 100kb default body
+// limit, which otherwise surfaces as a 413 "request entity too large" after a
+// farmer adds pictures. Cap high enough for up to 5 compressed images.
+app.use(express.json({ limit: '20mb' }));
 
 app.use('/', healthRoutes);
 app.use('/api/users', userRoutes);
@@ -30,7 +33,13 @@ app.use('/api/orders', orderRoutes);
     await pool.query(
       'ALTER TABLE listings ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION'
     );
-    console.log('Schema self-heal: listings.lat/lng ensured');
+    await pool.query(
+      'ALTER TABLE listings ADD COLUMN IF NOT EXISTS description TEXT'
+    );
+    await pool.query(
+      'ALTER TABLE listings ADD COLUMN IF NOT EXISTS photos TEXT[]'
+    );
+    console.log('Schema self-heal: listings.lat/lng/description/photos ensured');
   } catch (err) {
     console.warn('Schema self-heal skipped (DB unavailable?):', err.message);
   }

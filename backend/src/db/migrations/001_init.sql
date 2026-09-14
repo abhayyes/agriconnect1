@@ -46,6 +46,8 @@ CREATE TABLE IF NOT EXISTS listings (
   location        VARCHAR(255),
   lat             DOUBLE PRECISION,
   lng             DOUBLE PRECISION,
+  description     TEXT,
+  photos          TEXT[],
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -53,6 +55,9 @@ CREATE TABLE IF NOT EXISTS listings (
 -- Geocoded coordinates for "nearest listing" sorting (idempotent for existing DBs)
 ALTER TABLE listings ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION;
 ALTER TABLE listings ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION;
+-- Farmer-supplied crop description + photos (base64 data URIs), idempotent
+ALTER TABLE listings ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE listings ADD COLUMN IF NOT EXISTS photos TEXT[];
 
 CREATE INDEX IF NOT EXISTS idx_listings_crop      ON listings(crop);
 CREATE INDEX IF NOT EXISTS idx_listings_farmer_id ON listings(farmer_id);

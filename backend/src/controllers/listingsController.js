@@ -175,7 +175,7 @@ async function getListings(req, res, next) {
 // Auth: farmer or fpo only
 async function createListing(req, res, next) {
   try {
-    const { crop, variety, quantity, unit, price_per_unit, location, status, lat, lng } = req.body;
+    const { crop, variety, quantity, unit, price_per_unit, location, status, lat, lng, description, photos } = req.body;
 
     if (!crop || !quantity || !unit || !price_per_unit) {
       return res.status(400).json({
@@ -189,8 +189,8 @@ async function createListing(req, res, next) {
     }
 
     const result = await pool.query(
-      `INSERT INTO listings (farmer_id, crop, variety, quantity, unit, price_per_unit, location, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO listings (farmer_id, crop, variety, quantity, unit, price_per_unit, location, status, description, photos)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING *`,
       [
         req.user.id,
@@ -200,7 +200,9 @@ async function createListing(req, res, next) {
         unit,
         price_per_unit,
         location || null,
-        status || 'active'
+        status || 'active',
+        description || null,
+        (Array.isArray(photos) && photos.length) ? photos : null
       ]
     );
 
@@ -242,7 +244,7 @@ async function createListing(req, res, next) {
 async function updateListing(req, res, next) {
   try {
     const { id } = req.params;
-    const { crop, variety, quantity, unit, price_per_unit, status, location, lat, lng } = req.body;
+    const { crop, variety, quantity, unit, price_per_unit, status, location, lat, lng, description, photos } = req.body;
 
     // First verify the listing exists and user owns it
     const existing = await pool.query(
@@ -315,6 +317,16 @@ async function updateListing(req, res, next) {
       paramCount++;
       updates.push(`location = $${paramCount}`);
       params.push(location);
+    }
+    if (description !== undefined) {
+      paramCount++;
+      updates.push(`description = $${paramCount}`);
+      params.push(description);
+    }
+    if (photos !== undefined) {
+      paramCount++;
+      updates.push(`photos = $${paramCount}`);
+      params.push((Array.isArray(photos) && photos.length) ? photos : null);
     }
 
     if (updates.length === 0) {

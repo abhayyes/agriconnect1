@@ -38,6 +38,8 @@ CREATE TABLE listings (
   location        VARCHAR(255),
   lat             DOUBLE PRECISION,
   lng             DOUBLE PRECISION,
+  description     TEXT,
+  photos          TEXT[],
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );

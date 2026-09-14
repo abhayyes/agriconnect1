@@ -57,7 +57,7 @@ async function predictDemand(farmerId) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ farmerId }),
-      signal: AbortSignal.timeout(5000)
+      signal: AbortSignal.timeout(AI_SERVICE_TIMEOUT_MS)
     });
 
     if (!response.ok) {
@@ -86,7 +86,7 @@ async function predictPrices(crops) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ crops: crops || null }),
-      signal: AbortSignal.timeout(20000)
+      signal: AbortSignal.timeout(AI_SERVICE_TIMEOUT_MS)
     });
 
     if (!response.ok) {
@@ -114,7 +114,7 @@ async function fetchMarketDemand() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({}),
-      signal: AbortSignal.timeout(20000)
+      signal: AbortSignal.timeout(AI_SERVICE_TIMEOUT_MS)
     });
     if (!response.ok) {
       console.error(`AI service returned ${response.status} for predict-demand`);
