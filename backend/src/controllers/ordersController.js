@@ -643,7 +643,7 @@ async function getMarketDemand(req, res, next) {
     const result = await fetchMarketDemand();
     if (!result || !result.forecast) {
       return res.status(503).json({
-        message: 'Demand forecasting service unavailable',
+        error: 'Demand forecasting service unavailable',
         forecast: null
       });
     }
@@ -665,7 +665,7 @@ async function getDemandForecast(req, res, next) {
 
     if (!forecast) {
       return res.status(200).json({
-        message: 'Demand forecasting service unavailable',
+        error: 'Demand forecasting service unavailable',
         forecast: null
       });
     }
@@ -691,7 +691,7 @@ async function getPriceForecast(req, res, next) {
 
     if (!result) {
       return res.status(503).json({
-        message: 'Price forecasting service unavailable',
+        error: 'Price forecasting service unavailable',
         forecast: null
       });
     }
